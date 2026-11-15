@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Takeo",
+    "aliases": ["Takeo", "Takeo Province"],
+    "type": "province",
+    "province": "Takeo",
+    "latitude": 10.9358547,
+    "longitude": 104.7796413,
+    "osm_id": 2200220
+  },
+  {
+    "name": "Memot",
+    "aliases": ["Memot", "Memot District"],
+    "type": "district",
+    "province": "Tbong Khmum",
+    "latitude": 11.9106379,
+    "longitude": 106.2211686,
+    "osm_id": 19247374
+  },
+  {
+    "name": "Snuol",
+    "aliases": ["Snuol", "Snoul", "Snuol District", "Snoul District"],
+    "type": "district",
+    "province": "Kratie",
+    "latitude": 12.0722176,
+    "longitude": 106.4204015,
+    "osm_id": 1912552343
+  }
+]

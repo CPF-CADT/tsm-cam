@@ -1,0 +1,8 @@
+services:
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./offline-data:/data
+    command: osrm-routed --algorithm mld /data/cambodia-latest.osrm

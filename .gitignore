@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Environment and local configuration
+.env
+.env.*
+!.env.example
+
+# Test, coverage, and editor files
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+.vscode/
+.idea/
+
+# Large generated/offline map assets
+offline-data/*.osm.pbf
+offline-data/*.osrm*
+offline-data/*.pmtiles
+static/tiles/
