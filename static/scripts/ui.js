@@ -1,5 +1,6 @@
 const statusBox = document.querySelector('#status');
 const resultBox = document.querySelector('#result');
+const timingReport = document.querySelector('#timing-report');
 
 export function showStatus(message) {
   statusBox.textContent = message;
@@ -7,6 +8,7 @@ export function showStatus(message) {
 
 export function clearResult() {
   resultBox.replaceChildren();
+  timingReport.replaceChildren();
 }
 
 export function renderResult(data) {
@@ -27,4 +29,28 @@ export function renderResult(data) {
       metrics.appendChild(card);
     });
   resultBox.append(order, metrics);
+
+  const report = document.createElement('div');
+  report.className = 'timing-report-content';
+  const title = document.createElement('strong');
+  title.textContent = 'Performance report';
+  report.appendChild(title);
+  const labels = [
+    ['Geographic lookup', 'geocoding'],
+    ['Classical preparation', 'classical_preparation'],
+    ['Classical solver', 'classical_solver'],
+    ['Quantum QAOA', 'quantum_qaoa'],
+    ['Total processing', 'total']
+  ];
+  labels.forEach(([label, key]) => {
+    const row = document.createElement('div');
+    row.className = 'timing-row';
+    const name = document.createElement('span');
+    name.textContent = label;
+    const value = document.createElement('strong');
+    value.textContent = `${Number(data.timings_ms?.[key] || 0).toFixed(0)} ms`;
+    row.append(name, value);
+    report.appendChild(row);
+  });
+  timingReport.appendChild(report);
 }

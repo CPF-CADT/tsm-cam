@@ -56,3 +56,4 @@ class RouteResponse(BaseModel):
     classical_ordered_names: list[str] = Field(default_factory=list)
     classical_distance_meters: float | None = None
     classical_repeated_segments: list[str] = Field(default_factory=list)
+    timings_ms: dict[str, float] = Field(default_factory=dict)

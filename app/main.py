@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import struct
+import time
 import zlib
 from itertools import permutations
 
@@ -171,6 +172,7 @@ def reverse_endpoint(latitude: float, longitude: float):
 
 @app.post("/api/routes/optimize", response_model=RouteResponse)
 def optimize_route(request: RouteRequest):
+    request_started = time.perf_counter()
     names = [request.depot, *request.destinations]
     normalized = [name.strip().casefold() for name in names]
     if len(set(normalized)) != len(normalized):
@@ -183,6 +185,7 @@ def optimize_route(request: RouteRequest):
 
     try:
         # 1. Resolve typed names or exact map-picked coordinates.
+        geocoding_started = time.perf_counter()
         points = [request.depot_point, *request.destination_points]
         typed_indices = [index for index, point in enumerate(points) if point is None]
         typed_names = [names[index] for index in typed_indices]
@@ -192,6 +195,7 @@ def optimize_route(request: RouteRequest):
             else geocode_many(typed_names)
         )
         typed_location_by_index = dict(zip(typed_indices, typed_locations))
+        geocoding_ms = (time.perf_counter() - geocoding_started) * 1000
         locations = []
         for index, name in enumerate(names):
             point = points[index] if index < len(points) else None
@@ -209,6 +213,7 @@ def optimize_route(request: RouteRequest):
             else:
                 locations.append(typed_location_by_index[index])
         # 2. Build the local straight-line distance matrix in kilometers.
+        classical_started = time.perf_counter()
         matrix_data = build_straight_distance_matrix(locations)
         distances = matrix_data["distances"]
         durations = matrix_data.get("durations", [])
@@ -217,6 +222,7 @@ def optimize_route(request: RouteRequest):
             tour = [0, *order, 0]
             # Keep every valid TSP permutation. Road overlap is scored after measurement.
             quantum_tours.append(tour)
+        classical_preparation_ms = (time.perf_counter() - classical_started) * 1000
 
         def check_candidates(candidate_list):
             checked_routes = []
@@ -231,8 +237,11 @@ def optimize_route(request: RouteRequest):
         counts = {}
         quantum_candidate = None
         classical_selected = None
+        quantum_ms = 0.0
+        classical_solver_ms = 0.0
         if request.solver_mode == "quantum":
             # Quantum mode runs QAOA only.
+            quantum_started = time.perf_counter()
             candidates, counts = qaoa_candidates(
                 distances,
                 request.gamma,
@@ -250,13 +259,16 @@ def optimize_route(request: RouteRequest):
                     ),
                 )
             checked = check_candidates(candidates)
+            quantum_ms = (time.perf_counter() - quantum_started) * 1000
         else:
             # Classical mode runs exhaustive search only; no QAOA is started.
+            classical_solver_started = time.perf_counter()
             classical_candidates = [
                 {"tour": tour, "bitstring": "", "count": 0}
                 for tour in quantum_tours
             ]
             checked = check_candidates(classical_candidates)
+            classical_solver_ms = (time.perf_counter() - classical_solver_started) * 1000
 
         # Select the shortest valid tour by straight-line distance.
         inside = [item for item in checked if not item[1]]
@@ -267,6 +279,13 @@ def optimize_route(request: RouteRequest):
         ordered_names = [locations[index]["query"] for index in candidate["tour"]]
         legs = make_leg_results(route, locations, candidate["tour"])
         solver = request.solver_mode
+        timings_ms = {
+            "geocoding": round(geocoding_ms, 2),
+            "classical_preparation": round(classical_preparation_ms, 2),
+            "classical_solver": round(classical_solver_ms, 2),
+            "quantum_qaoa": round(quantum_ms, 2),
+            "total": round((time.perf_counter() - request_started) * 1000, 2),
+        }
         return RouteResponse(
             status="success" if not outside_cambodia else "outside_cambodia",
             solver=solver,
@@ -291,6 +310,7 @@ def optimize_route(request: RouteRequest):
             classical_ordered_names=ordered_names if request.solver_mode == "classical" else [],
             classical_distance_meters=route["distance"] if request.solver_mode == "classical" else None,
             classical_repeated_segments=[],
+            timings_ms=timings_ms,
         )
     except HTTPException:
         raise

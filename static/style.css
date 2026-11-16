@@ -23,6 +23,11 @@ button { margin-top: 14px; background: #176b87; color: white; border: 0; cursor:
 button:hover { background: #0d526a; }
 .status { margin-top: 12px; font-weight: 700; font-size: 0.9rem; }
 .result { margin-top: 10px; font-size: 0.86rem; }
+.timing-report { margin-top: 10px; font-size: 0.78rem; }
+.timing-report-content { padding: 9px; border: 1px solid #d9e2e6; border-radius: 8px; background: #f7fafb; }
+.timing-report-content > strong { display: block; color: #176b87; margin-bottom: 5px; }
+.timing-row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; color: #667781; }
+.timing-row strong { color: #17202a; white-space: nowrap; }
 .route-order { padding: 10px; border-radius: 8px; background: #eef5f7; color: #174d60; font-weight: 700; line-height: 1.4; }
 .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .metric-card { padding: 10px; border: 1px solid #d9e2e6; border-radius: 8px; }
