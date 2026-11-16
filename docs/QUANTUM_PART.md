@@ -242,7 +242,8 @@ papers. In particular, it does not enable custom XY or row-swap mixers, noise
 models, error mitigation, or IBM hardware execution. It uses Qiskit's standard
 baseline QAOA workflow with `AerSimulator`.
 
-The displayed map lines are illustrative straight connections. They are not
+The displayed map lines are illustrative curved connections. Some lines bend
+around the approximate Tonle Sap area for clearer visualization. They are not
 proof that real roads are non-overlapping because the quantum cost currently
 uses straight-line distances rather than road-segment geometry.
 

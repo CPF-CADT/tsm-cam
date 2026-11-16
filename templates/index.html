@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TSM-CAM Route Optimizer</title>
   <link rel="stylesheet" href="/static/vendor/maplibre/maplibre-gl.css">
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=20261116">
 </head>
 <body>
   <main class="page">
@@ -14,25 +14,28 @@
       <p class="subtitle">Straight-line distance route optimizer.</p>
       <form id="route-form">
         <label for="depot">Depot</label>
-        <input id="depot" list="place-options" value="Phnom Penh" placeholder="Search departure city" required>
+        <div class="location-input-row">
+          <input id="depot" list="place-options" value="Phnom Penh" placeholder="Search departure city" required>
+          <button class="pick-location-button" type="button" data-pick-target="depot" aria-label="Pick departure on map">📍</button>
+        </div>
         <label>Destinations</label>
-        <input class="destination" list="place-options" value="Takeo" placeholder="Destination 1" required>
-        <input class="destination" list="place-options" value="Kampong Cham" placeholder="Destination 2" required>
-        <input class="destination" list="place-options" value="Siem Reap" placeholder="Destination 3" required>
+        <div class="location-input-row">
+          <input class="destination" list="place-options" value="Takeo" placeholder="Destination 1" required>
+          <button class="pick-location-button" type="button" data-pick-target="destination-0" aria-label="Pick destination 1 on map">📍</button>
+        </div>
+        <div class="location-input-row">
+          <input class="destination" list="place-options" value="Kampong Cham" placeholder="Destination 2" required>
+          <button class="pick-location-button" type="button" data-pick-target="destination-1" aria-label="Pick destination 2 on map">📍</button>
+        </div>
+        <div class="location-input-row">
+          <input class="destination" list="place-options" value="Siem Reap" placeholder="Destination 3" required>
+          <button class="pick-location-button" type="button" data-pick-target="destination-2" aria-label="Pick destination 3 on map">📍</button>
+        </div>
         <label for="solver-mode">Calculation mode</label>
         <select id="solver-mode">
           <option value="quantum" selected>Quantum (QAOA)</option>
           <option value="classical">Classical</option>
         </select>
-        <div class="map-picker-controls">
-          <select id="pick-target" aria-label="Location to pick on map">
-            <option value="depot">Pick departure on map</option>
-            <option value="destination-0">Pick destination 1 on map</option>
-            <option value="destination-1">Pick destination 2 on map</option>
-            <option value="destination-2">Pick destination 3 on map</option>
-          </select>
-          <button id="pick-on-map" type="button">Pick location on map</button>
-        </div>
         <button type="submit">Optimize route</button>
       </form>
       <p class="hint">Search a Cambodian city, province, or district. Estimated time assumes 60 km/h.</p>
@@ -43,6 +46,6 @@
   </main>
   <datalist id="place-options"></datalist>
   <script src="/static/vendor/maplibre/pmtiles.js"></script>
-  <script type="module" src="/static/app.js"></script>
+  <script type="module" src="/static/scripts/app.js"></script>
 </body>
 </html>

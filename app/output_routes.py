@@ -39,6 +39,7 @@ def make_mock_route(
     for start, end in zip(order, order[1:]):
         start_coordinate = [locations[start]["longitude"], locations[start]["latitude"]]
         end_coordinate = [locations[end]["longitude"], locations[end]["latitude"]]
+        leg_coordinates = [start_coordinate, end_coordinate]
         if not route_coordinates:
             route_coordinates.append(start_coordinate)
         route_coordinates.append(end_coordinate)
@@ -53,7 +54,7 @@ def make_mock_route(
         legs.append({
             "distance": distance_meters,
             "duration": duration,
-            "steps": [{"geometry": {"coordinates": [start_coordinate, end_coordinate]}}],
+            "steps": [{"geometry": {"coordinates": leg_coordinates}}],
         })
     return {
         "distance": total_distance,

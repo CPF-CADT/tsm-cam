@@ -2,6 +2,8 @@
 
 TSM-CAM is a Cambodia route-order optimizer.
 
+![TSM-CAM system demo](demo.jpg)
+
 It allows a user to:
 
 - Select one departure location and up to three destinations.
