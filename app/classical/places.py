@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 INDEX_PATH = PROJECT_ROOT / "offline-data" / "places.json"
 OVERRIDES_PATH = PROJECT_ROOT / "offline-data" / "places_overrides.json"
 PROVINCES_PATH = PROJECT_ROOT / "static" / "data" / "provinces.json"

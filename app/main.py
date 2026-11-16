@@ -8,18 +8,18 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from .classical_compute_maps import (
+from .classical.locations import (
     CAMBODIA_BOUNDS,
-    build_straight_distance_matrix,
     cambodia_boundary,
     geocode_many,
     reverse_geocode,
     search_online,
 )
-from .initial_offline_places import geocode_offline, search_places
-from .initial_schemas import GeocodeResult, RouteRequest, RouteResponse
-from .output_routes import make_leg_results, make_mock_route
-from .quantum_qaoa import qaoa_candidates
+from .classical.distances import build_straight_distance_matrix
+from .classical.places import geocode_offline, search_places
+from .classical.routes import make_leg_results, make_mock_route
+from .quantum.qaoa import qaoa_candidates
+from .schemas import GeocodeResult, RouteRequest, RouteResponse
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent

@@ -15,7 +15,7 @@ OSRM_URL = "https://router.project-osrm.org"
 USER_AGENT = "tsm-cam/0.1 academic-route-optimizer"
 CAMBODIA_BOUNDS = [[10.30, 102.25], [14.75, 107.75]]
 EARTH_RADIUS_KM = 6371.0088
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROVINCES_PATH = PROJECT_ROOT / "static" / "data" / "provinces.json"
 
 _NAME_ALIASES = {"snoul": "snuol"}
@@ -178,7 +178,7 @@ def reverse_geocode(latitude: float, longitude: float) -> dict:
 @lru_cache(maxsize=1)
 def cambodia_boundary() -> dict:
     """Fetch and cache Cambodia's OSM boundary for the browser map."""
-    local_boundary = Path(__file__).resolve().parent.parent / "static" / "data" / "cambodia.geojson"
+    local_boundary = PROJECT_ROOT / "static" / "data" / "cambodia.geojson"
     if local_boundary.exists():
         return json.loads(local_boundary.read_text())
     params = urlencode({

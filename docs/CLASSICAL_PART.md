@@ -62,7 +62,7 @@ Purpose:
 - Selects the shortest valid candidate using the calculated distance.
 - This is classical post-processing after candidate generation.
 
-## `app/initial_schemas.py`
+## `app/schemas.py`
 
 Defines the data entering and leaving the application.
 
@@ -76,7 +76,7 @@ Important models:
 Relation to quantum computing: it carries quantum settings but does not run a
 quantum circuit.
 
-## `app/initial_offline_places.py`
+## `app/classical/places.py`
 
 Searches the local place index.
 
@@ -88,7 +88,7 @@ Purpose:
 
 Relation to quantum computing: provides the locations that become TSP cities.
 
-## `app/classical_compute_maps.py`
+## `app/classical/locations.py` and `app/classical/distances.py`
 
 Provides all geographic and distance calculations.
 
@@ -126,7 +126,7 @@ Purpose:
 - Checks whether selected points stay inside Cambodia.
 - Prevents invalid map selections.
 
-## `app/output_routes.py`
+## `app/classical/routes.py`
 
 Formats route results after optimization.
 

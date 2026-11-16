@@ -32,13 +32,13 @@ Responsibilities:
 - Receives route requests from the browser.
 - Calls location lookup and distance preparation.
 - Selects Quantum or Classical mode.
-- Calls `quantum_qaoa.py` in Quantum mode.
+- Calls `quantum/qaoa.py` in Quantum mode.
 - Formats the API response.
 
 Relation to quantum computing: **orchestration only**. It starts the QAOA
 workflow but does not define the quantum circuit itself.
 
-### `app/initial_schemas.py`
+### `app/schemas.py`
 
 Defines input and output data models:
 
@@ -50,14 +50,14 @@ Defines input and output data models:
 Relation to quantum computing: **indirect**. It carries quantum settings such
 as `gamma`, `beta`, `shots`, and `solver_mode`.
 
-### `app/initial_offline_places.py`
+### `app/classical/places.py`
 
 Searches the local Cambodia place index when offline mode is enabled.
 
 Relation to quantum computing: **not quantum**. It prepares the locations that
 will later become TSP cities.
 
-### `app/classical_compute_maps.py`
+### `app/classical/locations.py` and `app/classical/distances.py`
 
 Handles classical geographic calculations:
 
@@ -71,7 +71,7 @@ Handles classical geographic calculations:
 Relation to quantum computing: **classical input preparation**. The distance
 matrix produced here becomes the weight used by the quantum TSP model.
 
-### `app/quantum_qaoa.py`
+### `app/quantum/qaoa.py`
 
 This is the main quantum-computing file.
 
@@ -125,7 +125,7 @@ Ensures the returned route starts at the departure city.
 
 Relation to quantum computing: **core quantum implementation**.
 
-### `app/output_routes.py`
+### `app/classical/routes.py`
 
 Creates route legs and illustrative pin-to-pin GeoJSON lines for the frontend.
 

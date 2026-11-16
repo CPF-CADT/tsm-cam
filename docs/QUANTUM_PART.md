@@ -26,7 +26,7 @@ Bitstring decoding
 Valid route
 ```
 
-## Main file: `app/quantum_qaoa.py`
+## Main file: `app/quantum/qaoa.py`
 
 ### Imports
 
@@ -186,7 +186,7 @@ if request.solver_mode == "quantum":
     candidates, counts = qaoa_candidates(...)
 ```
 
-### `app/initial_schemas.py`
+### `app/schemas.py`
 
 Provides QAOA settings in `RouteRequest`:
 
@@ -195,7 +195,7 @@ Provides QAOA settings in `RouteRequest`:
 - `shots`
 - `solver_mode`
 
-### `app/classical_compute_maps.py`
+### `app/classical/locations.py` and `app/classical/distances.py`
 
 Creates the distance matrix used as the QAOA input. This part is classical,
 but its output becomes the quantum optimization cost.
