@@ -32,9 +32,11 @@ the scripts in `scripts/`.
 From the project directory:
 
 ```bash
-cd /Users/nak/CADT/CADT_Fourth_Year/quantum/implement/tsm-cam
-../.venv/bin/pip install -r requirements.txt
-../.venv/bin/uvicorn app.main:app --reload
+pip install -r requirements.txt
+```
+
+```bash
+uvicorn app.main:app --reload
 ```
 
 Open this address in a browser:
