@@ -7,6 +7,5 @@ export const state = {
   pickTarget: null,
   routeMarkers: [],
   provinceMarkers: [],
-  routeLayerIds: [],
-  routeSourceIds: []
+  routeLayers: []
 };

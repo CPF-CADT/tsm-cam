@@ -59,7 +59,7 @@ export function initializeMapPicking(map) {
       button.classList.add('is-active');
       button.textContent = '✕';
     }
-    map.getCanvas().classList.toggle('map-picking', state.pickingOnMap);
+    map.getContainer().classList.toggle('map-picking', state.pickingOnMap);
     showStatus(state.pickingOnMap ? 'Click the map to choose this location…' : 'Map picking cancelled');
   }));
 
@@ -68,15 +68,15 @@ export function initializeMapPicking(map) {
     const target = state.pickTarget;
     showStatus('Finding the selected map location…');
     try {
-      const response = await fetch(`/api/reverse?latitude=${event.lngLat.lat}&longitude=${event.lngLat.lng}`);
+      const response = await fetch(`/api/reverse?latitude=${event.latlng.lat}&longitude=${event.latlng.lng}`);
       const place = await response.json();
       if (!response.ok) throw new Error(place.detail || 'Location is outside Cambodia');
       const input = target === 'depot' ? document.querySelector('#depot') : document.querySelectorAll('.destination')[Number(target.split('-')[1])];
       input.value = place.query;
-      state.pickedPoints.set(target, {query: place.query, latitude: event.lngLat.lat, longitude: event.lngLat.lng});
+      state.pickedPoints.set(target, {query: place.query, latitude: event.latlng.lat, longitude: event.latlng.lng});
       state.pickingOnMap = false;
       state.pickTarget = null;
-      map.getCanvas().classList.remove('map-picking');
+      map.getContainer().classList.remove('map-picking');
       resetPickButtons();
       showStatus(`${place.query} selected from the map`);
     } catch (error) {
