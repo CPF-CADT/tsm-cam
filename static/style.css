@@ -99,7 +99,9 @@ button:disabled { cursor: wait; opacity: .65; }
   box-shadow: 0 2px 8px #0006;
   font-size: 23px;
 }
-.animated-car-icon { width: 52px; height: 52px; background: center / contain no-repeat url('/static/data/image/car.png?v=20261125-5'); filter: drop-shadow(0 2px 3px #0008); transform: rotate(calc(var(--car-bearing) - 123deg)); transform-origin: center; }
+.depot-icon-wrapper { background: transparent; border: 0; }
+.depot-icon { width: 48px; height: 48px; border: 3px solid white; border-radius: 50%; background: #176b87 center / 34px 34px no-repeat url('/static/data/image/location.png?v=20261125-2'); box-shadow: 0 2px 8px #0006; }
+.animated-car-icon { width: 72px; height: 52px; background: center / contain no-repeat url('/static/data/image/Red-and-White%20Delivery%20Helicopter.png?v=20261126-2'); filter: drop-shadow(0 2px 3px #0008); transform: rotate(calc(var(--car-bearing) - 90deg)); transform-origin: center; }
 .destination-icon-wrapper.is-visited .destination-icon { background: #2a9d8f; }
 .destination-icon {
   display: grid;

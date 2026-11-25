@@ -21,8 +21,8 @@ const remainingLabel = document.querySelector('#animation-remaining');
 function carIcon(bearing = 0) {
   return L.divIcon({
     className: 'car-icon-wrapper',
-    html: `<div class="animated-car-icon" style="--car-bearing: ${bearing}deg" role="img" aria-label="Animated route vehicle"></div>`,
-    iconSize: [52, 52], iconAnchor: [26, 26],
+    html: `<div class="animated-car-icon" style="--car-bearing: ${bearing}deg" role="img" aria-label="Animated route helicopter"></div>`,
+    iconSize: [72, 52], iconAnchor: [36, 26],
   });
 }
 

@@ -24,7 +24,7 @@ export function initializeProvinceMarkers(map) {
 
 function markerIcon(kind, number) {
   return kind === 'depot'
-    ? divIcon('car-icon-wrapper', '<div class="car-icon">&#128664;</div>', [42, 42], [21, 21])
+    ? divIcon('depot-icon-wrapper', '<div class="depot-icon" role="img" aria-label="Depot location"></div>', [48, 48], [24, 24])
     : divIcon('destination-icon-wrapper', `<div class="destination-icon"><span>${number}</span></div>`, [34, 34], [17, 34]);
 }
 
