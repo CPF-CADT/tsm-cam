@@ -3,6 +3,33 @@ import { showStatus } from './ui.js';
 
 const placeOptions = document.querySelector('#place-options');
 
+function pointInRing(longitude, latitude, ring) {
+  let inside = false;
+  for (let current = 0, previous = ring.length - 1; current < ring.length; previous = current++) {
+    const [currentLongitude, currentLatitude] = ring[current];
+    const [previousLongitude, previousLatitude] = ring[previous];
+    const crossesLatitude = (currentLatitude > latitude) !== (previousLatitude > latitude);
+    const crossingLongitude = (previousLongitude - currentLongitude) * (latitude - currentLatitude)
+      / (previousLatitude - currentLatitude) + currentLongitude;
+    if (crossesLatitude && longitude < crossingLongitude) inside = !inside;
+  }
+  return inside;
+}
+
+function provinceAtPoint(provinces, latitude, longitude) {
+  if (!provinces) return null;
+  return provinces.features.find(feature => {
+    const [west, south, east, north] = feature.bbox || [];
+    if (longitude < west || longitude > east || latitude < south || latitude > north) return false;
+    const polygons = feature.geometry.type === 'Polygon'
+      ? [feature.geometry.coordinates]
+      : feature.geometry.coordinates;
+    return polygons.some(([outerRing, ...holes]) =>
+      pointInRing(longitude, latitude, outerRing) && !holes.some(hole => pointInRing(longitude, latitude, hole))
+    );
+  })?.properties.name || null;
+}
+
 function pointKey(input) {
   return input.id || `destination-${[...document.querySelectorAll('.destination')].indexOf(input)}`;
 }
@@ -45,6 +72,10 @@ export function initializeLocationSearch() {
 
 export function initializeMapPicking(map) {
   const pickButtons = [...document.querySelectorAll('.pick-location-button')];
+  // Province lookup stays local, including when TSM_OFFLINE=1.
+  const provinceBoundaries = fetch('/static/data/provinces.geojson')
+    .then(response => response.ok ? response.json() : null)
+    .catch(() => null);
   const resetPickButtons = () => pickButtons.forEach(button => {
     button.classList.remove('is-active');
     button.textContent = '📍';
@@ -68,9 +99,15 @@ export function initializeMapPicking(map) {
     const target = state.pickTarget;
     showStatus('Finding the selected map location…');
     try {
-      const response = await fetch(`/api/reverse?latitude=${event.latlng.lat}&longitude=${event.latlng.lng}`);
-      const place = await response.json();
-      if (!response.ok) throw new Error(place.detail || 'Location is outside Cambodia');
+      const provinceName = provinceAtPoint(await provinceBoundaries, event.latlng.lat, event.latlng.lng);
+      const place = provinceName
+        ? { query: provinceName }
+        : await fetch(`/api/reverse?latitude=${event.latlng.lat}&longitude=${event.latlng.lng}`)
+          .then(async response => {
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.detail || 'Location is outside Cambodia');
+            return result;
+          });
       const input = target === 'depot' ? document.querySelector('#depot') : document.querySelectorAll('.destination')[Number(target.split('-')[1])];
       input.value = place.query;
       state.pickedPoints.set(target, {query: place.query, latitude: event.latlng.lat, longitude: event.latlng.lng});

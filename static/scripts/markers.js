@@ -43,6 +43,7 @@ export function showLocationMarkers(map, data) {
     const marker = L.marker([location.latitude, location.longitude], {
       icon: markerIcon(isDepot ? 'depot' : 'destination', stopNumbers.get(locationIndex)),
     }).bindPopup(`<strong>${title}</strong><br>${escapeHtml(location.query)}`, { offset: [0, -20] }).addTo(map);
+    marker.__locationIndex = locationIndex;
     state.routeMarkers.push(marker);
   });
 }

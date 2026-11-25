@@ -30,6 +30,7 @@ input, select, button { width: 100%; padding: 11px; border: 1px solid #c8d2d8; b
 .leaflet-popup-content { font: inherit; }
 button { margin-top: 14px; background: #176b87; color: white; border: 0; cursor: pointer; font-weight: 700; }
 button:hover { background: #0d526a; }
+button:disabled { cursor: wait; opacity: .65; }
 .status { margin-top: 12px; font-weight: 700; font-size: 0.9rem; }
 .result { margin-top: 10px; font-size: 0.86rem; }
 .route-order { padding: 10px; border-radius: 8px; background: #eef5f7; color: #174d60; font-weight: 700; line-height: 1.4; }
@@ -38,6 +39,21 @@ button:hover { background: #0d526a; }
 .metric-card span, .metric-card strong { display: block; }
 .metric-card span { color: #667781; font-size: 0.75rem; }
 .metric-card strong { margin-top: 3px; color: #176b87; font-size: 1.15rem; }
+.animation-panel { margin-top: 12px; padding: 11px; border: 1px solid #d9e2e6; border-radius: 8px; background: #f9fbfc; }
+.animation-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #174d60; }
+.animation-heading span { color: #667781; font-size: .78rem; font-weight: 700; }
+.animation-controls, .speed-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 9px; }
+.animation-controls button, .speed-controls button { margin: 0; padding: 8px 5px; font-size: .8rem; }
+.animation-controls button:disabled { cursor: not-allowed; opacity: .5; }
+.speed-controls { grid-template-columns: auto repeat(3, 1fr); align-items: center; }
+.speed-controls span { color: #667781; font-size: .8rem; font-weight: 700; }
+.speed-controls button { background: #eef5f7; color: #176b87; border: 1px solid #c8d2d8; }
+.speed-controls button.is-selected { background: #176b87; color: white; }
+.animation-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.animation-details div { min-width: 0; padding: 7px; border-radius: 6px; background: white; }
+.animation-details span, .animation-details strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.animation-details span { color: #667781; font-size: .7rem; }
+.animation-details strong { margin-top: 2px; color: #176b87; font-size: .82rem; }
 .map {
   position: relative;
   width: 100%;
@@ -83,6 +99,9 @@ button:hover { background: #0d526a; }
   box-shadow: 0 2px 8px #0006;
   font-size: 23px;
 }
+.animated-car-icon { display: grid; place-items: center; width: 52px; height: 52px; filter: drop-shadow(0 2px 3px #0008); }
+.animated-car-icon img { display: block; width: 52px; height: 52px; object-fit: contain; transform: rotate(calc(var(--car-bearing) - 123deg)); transform-origin: center; }
+.destination-icon-wrapper.is-visited .destination-icon { background: #2a9d8f; }
 .destination-icon {
   display: grid;
   place-items: center;
@@ -119,4 +138,5 @@ button:hover { background: #0d526a; }
   .panel { overflow: visible; }
   .map { min-height: 48vh; }
   .route-legend { grid-template-columns: 1fr; }
+  .animation-controls { grid-template-columns: repeat(2, 1fr); }
 }
