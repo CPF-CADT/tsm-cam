@@ -99,8 +99,7 @@ button:disabled { cursor: wait; opacity: .65; }
   box-shadow: 0 2px 8px #0006;
   font-size: 23px;
 }
-.animated-car-icon { display: grid; place-items: center; width: 52px; height: 52px; filter: drop-shadow(0 2px 3px #0008); }
-.animated-car-icon img { display: block; width: 52px; height: 52px; object-fit: contain; transform: rotate(calc(var(--car-bearing) - 123deg)); transform-origin: center; }
+.animated-car-icon { width: 52px; height: 52px; background: center / contain no-repeat url('/static/data/image/car.png?v=20261125-5'); filter: drop-shadow(0 2px 3px #0008); transform: rotate(calc(var(--car-bearing) - 123deg)); transform-origin: center; }
 .destination-icon-wrapper.is-visited .destination-icon { background: #2a9d8f; }
 .destination-icon {
   display: grid;

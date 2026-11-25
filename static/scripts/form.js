@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { clearRouteMarkers, showLocationMarkers } from './markers.js';
 import { clearRouteLayers, showColoredRoute } from './route_layers.js';
 import { clearResult, renderResult, showStatus } from './ui.js';
-import { prepareRouteAnimation, resetRouteAnimation } from './animation.js?v=20261125-4';
+import { prepareRouteAnimation, resetRouteAnimation } from './animation.js?v=20261125-5';
 
 export function initializeRouteForm(map) {
   document.querySelector('#route-form').addEventListener('submit', async event => {
