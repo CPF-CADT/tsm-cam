@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TSM-CAM Route Optimizer</title>
   <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="/static/style.css?v=20261118-4">
+  <link rel="stylesheet" href="/static/style.css?v=20261126-2">
 </head>
 <body>
   <main class="page">
@@ -38,7 +38,27 @@
         </select>
         <button type="submit">Optimize route</button>
       </form>
-      <p class="hint">Search a Cambodian city, province, or district. Estimated time assumes 60 km/h.</p>
+      <section id="animation-panel" class="animation-panel" hidden aria-label="Route animation controls">
+        <div class="animation-heading"><strong>Route animation</strong><span id="animation-state">Ready</span></div>
+        <div class="animation-controls">
+          <button id="animation-start" type="button">Start</button>
+          <button id="animation-pause" type="button" disabled>Pause</button>
+          <button id="animation-resume" type="button" disabled>Resume</button>
+          <button id="animation-reset" type="button" disabled>Reset</button>
+        </div>
+        <div class="speed-controls" role="group" aria-label="Animation speed">
+          <span>Speed</span>
+          <button type="button" data-animation-speed="1" class="is-selected">1×</button>
+          <button type="button" data-animation-speed="2">2×</button>
+          <button type="button" data-animation-speed="4">4×</button>
+        </div>
+        <div class="animation-details" aria-live="polite">
+          <div><span>Current</span><strong id="animation-current">—</strong></div>
+          <div><span>Next</span><strong id="animation-next">—</strong></div>
+          <div><span>Journey</span><strong id="animation-progress">0%</strong></div>
+          <div><span>Remaining</span><strong id="animation-remaining">—</strong></div>
+        </div>
+      </section>
       <div id="status" class="status"></div>
       <div id="result" class="result"></div>
       <div id="timing-report" class="timing-report"></div>
@@ -47,6 +67,6 @@
   </main>
   <datalist id="place-options"></datalist>
   <script src="/static/vendor/leaflet/leaflet.js"></script>
-  <script type="module" src="/static/scripts/app.js"></script>
+  <script type="module" src="/static/scripts/app.js?v=20261126-2"></script>
 </body>
 </html>
