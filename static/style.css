@@ -47,7 +47,7 @@ button:disabled { cursor: wait; opacity: .65; }
 .animation-panel { margin-top: 12px; padding: 11px; border: 1px solid #d9e2e6; border-radius: 8px; background: #f9fbfc; }
 .animation-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #174d60; }
 .animation-heading span { color: #667781; font-size: .78rem; font-weight: 700; }
-.animation-controls, .speed-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 9px; }
+.animation-controls, .speed-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 9px; }
 .animation-controls button, .speed-controls button { margin: 0; padding: 8px 5px; font-size: .8rem; }
 .animation-controls button:disabled { cursor: not-allowed; opacity: .5; }
 .speed-controls { grid-template-columns: auto repeat(3, 1fr); align-items: center; }
@@ -106,7 +106,7 @@ button:disabled { cursor: wait; opacity: .65; }
 }
 .depot-icon-wrapper { background: transparent; border: 0; }
 .depot-icon { width: 48px; height: 48px; border: 3px solid white; border-radius: 50%; background: #176b87 center / 34px 34px no-repeat url('/static/data/image/location.png?v=20261125-2'); box-shadow: 0 2px 8px #0006; }
-.animated-car-icon { width: 72px; height: 52px; background: center / contain no-repeat url('/static/data/image/Red-and-White%20Delivery%20Helicopter.png?v=20261126-2'); filter: drop-shadow(0 2px 3px #0008); transform: rotate(calc(var(--car-bearing) - 90deg)); transform-origin: center; }
+.animated-car-icon { width: 72px; height: 52px; background: center / contain no-repeat url('/static/data/image/Red-and-White%20Delivery%20Helicopter.png?v=20261126-2'); filter: drop-shadow(0 2px 3px #0008); transform: rotate(var(--helicopter-heading, 0deg)); transform-origin: center; }
 .destination-icon-wrapper.is-visited .destination-icon { background: #2a9d8f; }
 .destination-icon {
   display: grid;

@@ -3,12 +3,12 @@ import { ROUTE_COLORS } from './config.js';
 
 const BASE_KM_PER_SECOND = 40;
 const ARRIVAL_PAUSE_MS = 1000;
+const DEFAULT_SPEED = 2;
 
 let map;
 let animation;
 
 const panel = document.querySelector('#animation-panel');
-const startButton = document.querySelector('#animation-start');
 const pauseButton = document.querySelector('#animation-pause');
 const resumeButton = document.querySelector('#animation-resume');
 const resetButton = document.querySelector('#animation-reset');
@@ -18,10 +18,10 @@ const nextLabel = document.querySelector('#animation-next');
 const progressLabel = document.querySelector('#animation-progress');
 const remainingLabel = document.querySelector('#animation-remaining');
 
-function carIcon(bearing = 0) {
+function carIcon(heading = 0) {
   return L.divIcon({
     className: 'car-icon-wrapper',
-    html: `<div class="animated-car-icon" style="--car-bearing: ${bearing}deg" role="img" aria-label="Animated route helicopter"></div>`,
+    html: `<div class="animated-car-icon" style="--helicopter-heading: ${heading}deg" role="img" aria-label="Animated route helicopter"></div>`,
     iconSize: [72, 52], iconAnchor: [36, 26],
   });
 }
@@ -40,14 +40,12 @@ function haversineMeters(a, b) {
   return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-function bearing(from, to) {
-  const radians = Math.PI / 180;
-  const lat1 = from[0] * radians;
-  const lat2 = to[0] * radians;
-  const deltaLng = (to[1] - from[1]) * radians;
-  const y = Math.sin(deltaLng) * Math.cos(lat2);
-  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
-  return (Math.atan2(y, x) / radians + 360) % 360;
+function heading(from, to) {
+  // The source artwork faces right. Match the straight route's screen direction,
+  // rather than a geographic bearing that can differ under map projection.
+  const start = map.project(from);
+  const end = map.project(to);
+  return Math.atan2(end.y - start.y, end.x - start.x) * 180 / Math.PI;
 }
 
 function setButtonState() {
@@ -55,7 +53,6 @@ function setButtonState() {
   const running = active && (animation.status === 'running' || animation.status === 'pausing');
   const paused = active && animation.status === 'paused';
   const done = active && animation.status === 'complete';
-  startButton.disabled = !active || running || paused || animation.started;
   pauseButton.disabled = !running;
   resumeButton.disabled = !paused;
   resetButton.disabled = !active || (!animation.started && !done);
@@ -113,6 +110,9 @@ function finishLeg() {
     setButtonState();
     return;
   }
+  const nextLeg = animation.legs[animation.legIndex];
+  animation.car.getElement()?.querySelector('.animated-car-icon')
+    ?.style.setProperty('--helicopter-heading', `${heading(toLatLng(nextLeg.coordinates[0]), toLatLng(nextLeg.coordinates.at(-1)))}deg`);
   animation.status = 'pausing';
   animation.frame = null;
   setButtonState();
@@ -137,7 +137,7 @@ function step(timestamp) {
   const position = interpolate(from, to, progress);
   animation.car.setLatLng(position);
   animation.car.getElement()?.querySelector('.animated-car-icon')
-    ?.style.setProperty('--car-bearing', `${bearing(from, to)}deg`);
+    ?.style.setProperty('--helicopter-heading', `${heading(from, to)}deg`);
   updateDetails(progress);
   if (progress >= 1) finishLeg();
   else animation.frame = requestAnimationFrame(step);
@@ -154,8 +154,8 @@ function begin() {
 }
 
 function pause() {
-  if (!animation || animation.status !== 'running') return;
-  if (animation.legStart) animation.elapsedSeconds += (performance.now() - animation.legStart) / 1000 * animation.speed;
+  if (!animation || !['running', 'pausing'].includes(animation.status)) return;
+  if (animation.status === 'running' && animation.legStart) animation.elapsedSeconds += (performance.now() - animation.legStart) / 1000 * animation.speed;
   cancelFrame();
   animation.status = 'paused';
   setButtonState();
@@ -188,16 +188,21 @@ export function prepareRouteAnimation(leafletMap, data) {
   const depot = data.locations[data.order[0]];
   animation = {
     legs, depotName: depot.query, totalMeters: data.distance_meters || legs.reduce((sum, leg) => sum + leg.distance_meters, 0),
-    completedMeters: 0, legIndex: 0, status: 'ready', speed: 1, started: false, frame: null, pauseTimer: null, legStart: null, elapsedSeconds: 0,
-    car: L.marker([depot.latitude, depot.longitude], { icon: carIcon(), interactive: false, zIndexOffset: 1000 }).addTo(map),
+    completedMeters: 0, legIndex: 0, status: 'ready', speed: DEFAULT_SPEED, started: false, frame: null, pauseTimer: null, legStart: null, elapsedSeconds: 0,
+    car: L.marker([depot.latitude, depot.longitude], {
+      icon: carIcon(heading(toLatLng(legs[0].coordinates[0]), toLatLng(legs[0].coordinates.at(-1)))),
+      interactive: false, zIndexOffset: 1000,
+    }).addTo(map),
   };
   panel.hidden = false;
   updateDetails();
-  setButtonState();
+  document.querySelectorAll('[data-animation-speed]').forEach(button => {
+    button.classList.toggle('is-selected', Number(button.dataset.animationSpeed) === DEFAULT_SPEED);
+  });
+  begin();
 }
 
 export function initializeRouteAnimation() {
-  startButton.addEventListener('click', begin);
   pauseButton.addEventListener('click', pause);
   resumeButton.addEventListener('click', resume);
   resetButton.addEventListener('click', () => {
@@ -209,7 +214,9 @@ export function initializeRouteAnimation() {
     data.legIndex = 0; data.completedMeters = 0; data.status = 'ready'; data.started = false; data.legStart = null; data.elapsedSeconds = 0;
     state.routeMarkers.forEach(marker => marker.getElement()?.classList.remove('is-visited'));
     state.routeLayers.forEach((layer, index) => layer.setStyle({ color: ROUTE_COLORS[index % ROUTE_COLORS.length], weight: 5, opacity: 0.9 }));
-    updateDetails(); setButtonState();
+    data.car.getElement()?.querySelector('.animated-car-icon')
+      ?.style.setProperty('--helicopter-heading', `${heading(toLatLng(initial), toLatLng(data.legs[0].coordinates.at(-1)))}deg`);
+    updateDetails(); begin();
   });
   document.querySelectorAll('[data-animation-speed]').forEach(button => button.addEventListener('click', () => {
     if (!animation) return;
