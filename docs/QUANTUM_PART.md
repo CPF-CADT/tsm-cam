@@ -47,6 +47,14 @@ compilation, sampling and decoding. Held–Karp compute time covers the search a
 tour reconstruction. Geocoding, distance-matrix construction and total server
 processing are reported separately.
 
+The server keeps up to 64 successful quantum results in memory. Repeating the
+same distance matrix, shot count, initial angles and solver settings returns
+the recorded measurement counts with a cached result label. A server restart
+clears the cache.
+
+`POST /api/routes/compare` prepares one distance matrix for both requested solvers.
+Set `fresh_quantum` to `true` in the JSON request to measure a fresh run.
+
 ## References
 
 - [Hadfield et al. (2019), Section 5.1](https://www.mdpi.com/1999-4893/12/2/34) describes permutation-swap mixers for TSP.

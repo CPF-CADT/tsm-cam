@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TSM-CAM Route Optimizer</title>
   <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="/static/style.css?v=20261128-4">
+  <link rel="stylesheet" href="/static/style.css?v=20261128-16">
 </head>
 <body>
   <main class="page">
@@ -31,28 +31,38 @@
           <input class="destination" list="place-options" value="Siem Reap" placeholder="Destination 3">
           <button class="pick-location-button" type="button" data-pick-target="destination-2" aria-label="Pick destination 3 on map">📍</button>
         </div>
-        <label for="solver-mode">Calculation mode</label>
-        <select id="solver-mode">
-          <option value="quantum" selected>Quantum (QAOA)</option>
-          <option value="classical">Classical</option>
-        </select>
-        <button type="submit">Optimize route</button>
+        <button id="optimize-route" class="comparison-submit" type="submit">Optimize route</button>
       </form>
-      <div id="status" class="status"></div>
-      <div id="result" class="result"></div>
-      <div id="timing-report" class="timing-report"></div>
+      <button id="toggle-location-pins" class="pin-toggle" type="button" aria-pressed="false">
+        Other location pins <span aria-hidden="true">Off</span>
+      </button>
+      <div id="status" class="status" role="status"></div>
     </section>
-    <section id="map" class="map">
-      <dl id="journey-details" class="journey-details" aria-label="Journey progress" hidden>
-        <div><dt>Current</dt><dd id="animation-current">—</dd></div>
-        <div><dt>Next</dt><dd id="animation-next">—</dd></div>
-        <div><dt>Journey</dt><dd id="animation-progress">0%</dd></div>
-        <div><dt>Remaining</dt><dd id="animation-remaining">—</dd></div>
-      </dl>
+    <section class="comparison-workspace" aria-label="Compare route solvers">
+      <article class="solver-panel" data-solver-panel="left">
+        <header class="solver-header">
+          <select id="left-solver" class="solver-picker" form="route-form" aria-label="First algorithm">
+            <option value="classical" selected>Classical (Held–Karp)</option>
+            <option value="quantum">Quantum (QAOA)</option>
+          </select>
+        </header>
+        <div id="left-map" class="map" aria-label="Left route map"></div>
+        <section class="solver-result result" aria-label="Left solver result" hidden></section>
+      </article>
+      <article class="solver-panel" data-solver-panel="right">
+        <header class="solver-header">
+          <select id="right-solver" class="solver-picker" form="route-form" aria-label="Second algorithm">
+            <option value="classical">Classical (Held–Karp)</option>
+            <option value="quantum" selected>Quantum (QAOA)</option>
+          </select>
+        </header>
+        <div id="right-map" class="map" aria-label="Right route map"></div>
+        <section class="solver-result result" aria-label="Right solver result" hidden></section>
+      </article>
     </section>
   </main>
   <datalist id="place-options"></datalist>
   <script src="/static/vendor/leaflet/leaflet.js"></script>
-  <script type="module" src="/static/scripts/app.js?v=20261128-6"></script>
+  <script type="module" src="/static/scripts/app.js?v=20261128-17"></script>
 </body>
 </html>

@@ -10,7 +10,7 @@ It allows a user to:
 - Search for Cambodian provinces, districts, cities, and towns.
 - Pick locations directly from the map.
 - Calculate straight-line distances using the Haversine formula.
-- Optimize the visit order using Quantum QAOA or classical Held–Karp dynamic programming.
+- Compare Quantum QAOA and classical Held–Karp on separate maps using the same stops.
 - Display the selected route on a Cambodia map.
 
 The quantum workflow is:

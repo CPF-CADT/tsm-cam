@@ -4,8 +4,5 @@ export const state = {
   placeSearchTimers: new WeakMap(),
   placeSearchControllers: new WeakMap(),
   pickingOnMap: false,
-  pickTarget: null,
-  routeMarkers: [],
-  provinceMarkers: [],
-  routeLayers: []
+  pickTarget: null
 };

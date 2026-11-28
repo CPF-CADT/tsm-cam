@@ -1,7 +1,9 @@
 """Fixed-depot QAOA with a feasibility-preserving permutation mixer."""
 
-from dataclasses import dataclass
+from collections import OrderedDict
+from dataclasses import dataclass, replace
 from itertools import combinations
+from threading import Lock
 from time import perf_counter
 
 import networkx as nx
@@ -20,7 +22,7 @@ from qiskit_optimization.converters import QuadraticProgramToQubo
 from qiskit_optimization.minimum_eigensolvers import QAOA
 from qiskit_optimization.translators import to_ising
 
-from .config import QAOA_CONFIG, QAOAConfig
+from .config import QAOA_CACHE_SIZE, QAOA_CONFIG, QAOAConfig
 
 
 @dataclass
@@ -32,6 +34,11 @@ class QAOAResult:
     qubits: int
     evaluations: int
     compute_ms: float
+    cached: bool = False
+
+
+_result_cache: OrderedDict[tuple, QAOAResult] = OrderedDict()
+_cache_lock = Lock()
 
 
 def create_graph(distance_matrix):
@@ -127,9 +134,32 @@ def solve_qaoa(
     beta: float,
     gamma: float,
     config: QAOAConfig = QAOA_CONFIG,
+    fresh: bool = False,
 ) -> QAOAResult:
-    """Sample a closed tour, selecting the most frequent final measurement."""
-    distances = np.asarray(distance_matrix, dtype=float)
+    """Sample a closed tour or reuse a result for identical seeded inputs."""
+    matrix = tuple(tuple(row) for row in distance_matrix)
+    key = (matrix, shots, beta, gamma, config)
+    if not fresh:
+        with _cache_lock:
+            result = _result_cache.get(key)
+            if result is not None:
+                _result_cache.move_to_end(key)
+                return replace(result, tour=result.tour.copy(), counts=result.counts.copy(),
+                               compute_ms=0.0, cached=True)
+
+    result = _run_qaoa(matrix, shots=shots, beta=beta, gamma=gamma, config=config)
+    if result.tour is not None:
+        with _cache_lock:
+            _result_cache[key] = replace(result, tour=result.tour.copy(), counts=result.counts.copy())
+            _result_cache.move_to_end(key)
+            if len(_result_cache) > QAOA_CACHE_SIZE:
+                _result_cache.popitem(last=False)
+    return result
+
+
+def _run_qaoa(matrix, *, shots: int, beta: float, gamma: float, config: QAOAConfig) -> QAOAResult:
+    """Run QAOA and select the most frequent final measurement."""
+    distances = np.asarray(matrix, dtype=float)
     if distances.ndim != 2 or distances.shape[0] != distances.shape[1] or len(distances) < 2:
         raise ValueError("Expected a square distance matrix with a depot and at least one destination")
 

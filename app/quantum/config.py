@@ -18,3 +18,4 @@ class QAOAConfig:
 
 
 QAOA_CONFIG = QAOAConfig()
+QAOA_CACHE_SIZE = 64

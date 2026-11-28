@@ -1,4 +1,7 @@
+from dataclasses import dataclass
+from math import isclose
 from pathlib import Path
+import logging
 import os
 import struct
 import time
@@ -21,9 +24,20 @@ from .classical.places import geocode_offline, search_places
 from .classical.routes import make_leg_results, make_mock_route
 from .quantum.config import QAOA_CONFIG
 from .quantum.qaoa import solve_qaoa
-from .schemas import GeocodeResult, QuantumRun, RouteRequest, RouteResponse
+from .schemas import (
+    GeocodeResult,
+    QuantumRun,
+    RouteComparisonRequest,
+    RouteComparisonResponse,
+    RouteInputs,
+    RouteRequest,
+    RouteResponse,
+    SolverComparisonResult,
+    SolverMode,
+)
 
 
+logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent.parent
 app = FastAPI(title="TSM-CAM Route Optimizer", version="0.1.0")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
@@ -171,127 +185,187 @@ def reverse_endpoint(latitude: float, longitude: float):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-@app.post("/api/routes/optimize", response_model=RouteResponse)
-def optimize_route(request: RouteRequest):
-    request_started = time.perf_counter()
+@dataclass
+class RouteProblem:
+    locations: list[dict]
+    distances: list[list[float]]
+    durations: list[list[float | None]]
+    preparation_ms: dict[str, float]
+
+
+def _prepare_route(request: RouteInputs) -> RouteProblem:
     names = [request.depot, *request.destinations]
     normalized = [name.strip().casefold() for name in names]
     if len(set(normalized)) != len(normalized):
         raise HTTPException(status_code=400, detail="Depot and destinations must be unique")
-    if len(names) > 4:
-        raise HTTPException(
-            status_code=400,
-            detail="The academic demo supports 1 depot and up to 3 destinations",
-        )
 
-    try:
-        # 1. Resolve typed names or exact map-picked coordinates.
-        geocoding_started = time.perf_counter()
-        points = [request.depot_point, *request.destination_points[:len(request.destinations)]]
-        points.extend([None] * (len(names) - len(points)))
-        typed_indices = [index for index, point in enumerate(points) if point is None]
-        typed_names = [names[index] for index in typed_indices]
-        typed_locations = (
-            [geocode_offline(name) for name in typed_names]
-            if os.getenv("TSM_OFFLINE", "0") == "1"
-            else geocode_many(typed_names)
-        )
-        typed_location_by_index = dict(zip(typed_indices, typed_locations))
-        geocoding_ms = (time.perf_counter() - geocoding_started) * 1000
-        locations = []
-        for index, name in enumerate(names):
-            point = points[index]
-            if point is not None:
-                locations.append({
-                    "query": point.query,
-                    "display_name": point.query,
-                    "latitude": point.latitude,
-                    "longitude": point.longitude,
-                    "osm_type": "coordinate",
-                    "osm_id": None,
-                    "detected_type": "map_pin",
-                    "province": None,
-                })
-            else:
-                locations.append(typed_location_by_index[index])
-        # 2. Build the local straight-line distance matrix in kilometers.
-        classical_started = time.perf_counter()
-        matrix_data = build_straight_distance_matrix(locations)
-        distances = matrix_data["distances"]
-        durations = matrix_data.get("durations", [])
-        classical_preparation_ms = (time.perf_counter() - classical_started) * 1000
-
-        solver = request.solver_mode
-        selected_bitstring = None
-        counts = {}
-        quantum_run = None
-        quantum_ms = 0.0
-        classical_solver_ms = 0.0
-        if solver == "quantum":
-            result = solve_qaoa(
-                distances, gamma=request.gamma, beta=request.beta, shots=request.shots,
-            )
-            if result.tour is None:
-                raise HTTPException(
-                    status_code=422,
-                    detail="The most frequent quantum measurement did not encode a valid tour.",
-                )
-            tour = result.tour
-            selected_bitstring = result.bitstring
-            counts = result.counts
-            quantum_ms = result.compute_ms
-            quantum_run = QuantumRun(
-                layers=result.layers,
-                cvar_alpha=QAOA_CONFIG.cvar_alpha if result.layers else None,
-                qubits=result.qubits,
-                shots=sum(counts.values()),
-                selected_count=counts[selected_bitstring],
-                objective_evaluations=result.evaluations,
-                seed=QAOA_CONFIG.seed,
-            )
-            message = (
-                "QAOA selected the most frequently measured tour"
-                if result.layers else "Sampled the only possible tour on one qubit"
-            )
+    # 1. Resolve typed names or exact map-picked coordinates.
+    geocoding_started = time.perf_counter()
+    points = [request.depot_point, *request.destination_points[:len(request.destinations)]]
+    points.extend([None] * (len(names) - len(points)))
+    typed_indices = [index for index, point in enumerate(points) if point is None]
+    typed_names = [names[index] for index in typed_indices]
+    typed_locations = (
+        [geocode_offline(name) for name in typed_names]
+        if os.getenv("TSM_OFFLINE", "0") == "1"
+        else geocode_many(typed_names)
+    )
+    typed_location_by_index = dict(zip(typed_indices, typed_locations))
+    geocoding_ms = (time.perf_counter() - geocoding_started) * 1000
+    locations = []
+    for index, point in enumerate(points):
+        if point is not None:
+            locations.append({
+                "query": point.query,
+                "display_name": point.query,
+                "latitude": point.latitude,
+                "longitude": point.longitude,
+                "osm_type": "coordinate",
+                "osm_id": None,
+                "detected_type": "map_pin",
+                "province": None,
+            })
         else:
-            classical_solver_started = time.perf_counter()
-            tour = held_karp_tour(distances)
-            classical_solver_ms = (time.perf_counter() - classical_solver_started) * 1000
-            message = "Held–Karp selected the shortest tour by straight-line distance"
+            locations.append(typed_location_by_index[index])
+    # 2. Build the local straight-line distance matrix in kilometers.
+    classical_started = time.perf_counter()
+    matrix_data = build_straight_distance_matrix(locations)
+    distances = matrix_data["distances"]
+    durations = matrix_data.get("durations", [])
+    classical_preparation_ms = (time.perf_counter() - classical_started) * 1000
+    return RouteProblem(locations, distances, durations, {
+        "geocoding": round(geocoding_ms, 2),
+        "classical_preparation": round(classical_preparation_ms, 2),
+    })
 
-        route = make_mock_route(locations, tour, distances, durations)
-        ordered_names = [locations[index]["query"] for index in tour]
-        legs = make_leg_results(route, locations, tour)
-        timings_ms = {
-            "geocoding": round(geocoding_ms, 2),
-            "classical_preparation": round(classical_preparation_ms, 2),
-            "classical_solver": round(classical_solver_ms, 3),
-            "quantum_qaoa": round(quantum_ms, 3),
-            "total": round((time.perf_counter() - request_started) * 1000, 2),
-        }
-        return RouteResponse(
-            status="success",
-            solver=solver,
-            message=message,
-            locations=locations,
-            order=tour,
-            ordered_names=ordered_names,
-            distance_meters=route["distance"],
-            duration_seconds=route["duration"],
-            geometry=route.get("geometry"),
-            legs=legs,
-            selected_bitstring=selected_bitstring,
-            top_measurements=dict(sorted(counts.items(), key=lambda item: item[1], reverse=True)[:10]),
-            quantum_run=quantum_run,
-            winner=solver,
-            quantum_ordered_names=ordered_names if solver == "quantum" else [],
-            quantum_distance_meters=route["distance"] if solver == "quantum" else None,
-            quantum_bitstring=selected_bitstring,
-            classical_ordered_names=ordered_names if solver == "classical" else [],
-            classical_distance_meters=route["distance"] if solver == "classical" else None,
-            timings_ms=timings_ms,
+
+def _solve_route(
+    request: RouteInputs, problem: RouteProblem, solver: SolverMode, *, fresh_quantum: bool = False,
+) -> RouteResponse:
+    locations, distances, durations = problem.locations, problem.distances, problem.durations
+    selected_bitstring = None
+    counts = {}
+    quantum_run = None
+    quantum_ms = 0.0
+    classical_solver_ms = 0.0
+    if solver == "quantum":
+        result = solve_qaoa(
+            distances, gamma=request.gamma, beta=request.beta, shots=request.shots, fresh=fresh_quantum,
         )
+        if result.tour is None:
+            raise HTTPException(
+                status_code=422,
+                detail="The most frequent quantum measurement did not encode a valid tour.",
+            )
+        tour = result.tour
+        selected_bitstring = result.bitstring
+        counts = result.counts
+        quantum_ms = result.compute_ms
+        quantum_run = QuantumRun(
+            layers=result.layers,
+            cvar_alpha=QAOA_CONFIG.cvar_alpha if result.layers else None,
+            qubits=result.qubits,
+            shots=sum(counts.values()),
+            selected_count=counts[selected_bitstring],
+            objective_evaluations=result.evaluations,
+            seed=QAOA_CONFIG.seed,
+            cached=result.cached,
+        )
+        message = (
+            "QAOA selected the most frequently measured tour"
+            if result.layers else "Sampled the only possible tour on one qubit"
+        )
+    else:
+        classical_solver_started = time.perf_counter()
+        tour = held_karp_tour(distances)
+        classical_solver_ms = (time.perf_counter() - classical_solver_started) * 1000
+        message = "Held–Karp selected the shortest tour by straight-line distance"
+
+    route = make_mock_route(locations, tour, distances, durations)
+    ordered_names = [locations[index]["query"] for index in tour]
+    legs = make_leg_results(route, locations, tour)
+    timings_ms = {
+        "classical_solver": round(classical_solver_ms, 3),
+        "quantum_qaoa": round(quantum_ms, 3),
+    }
+    return RouteResponse(
+        status="success",
+        solver=solver,
+        message=message,
+        locations=locations,
+        order=tour,
+        ordered_names=ordered_names,
+        distance_meters=route["distance"],
+        duration_seconds=route["duration"],
+        geometry=route.get("geometry"),
+        legs=legs,
+        selected_bitstring=selected_bitstring,
+        top_measurements=dict(sorted(counts.items(), key=lambda item: item[1], reverse=True)[:10]),
+        quantum_run=quantum_run,
+        winner=solver,
+        quantum_ordered_names=ordered_names if solver == "quantum" else [],
+        quantum_distance_meters=route["distance"] if solver == "quantum" else None,
+        quantum_bitstring=selected_bitstring,
+        classical_ordered_names=ordered_names if solver == "classical" else [],
+        classical_distance_meters=route["distance"] if solver == "classical" else None,
+        timings_ms=timings_ms,
+    )
+
+
+@app.post("/api/routes/optimize", response_model=RouteResponse)
+def optimize_route(request: RouteRequest):
+    started = time.perf_counter()
+    try:
+        problem = _prepare_route(request)
+        route = _solve_route(request, problem, request.solver_mode)
+        route.timings_ms.update(problem.preparation_ms, total=round((time.perf_counter() - started) * 1000, 2))
+        return route
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/api/routes/compare", response_model=RouteComparisonResponse)
+def compare_routes(request: RouteComparisonRequest):
+    started = time.perf_counter()
+    try:
+        problem = _prepare_route(request)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    results = {}
+    for solver in dict.fromkeys((request.left_solver, request.right_solver)):
+        try:
+            route = _solve_route(request, problem, solver, fresh_quantum=request.fresh_quantum)
+            results[solver] = SolverComparisonResult(solver=solver, route=route)
+        except HTTPException as exc:
+            results[solver] = SolverComparisonResult(solver=solver, error=exc.detail)
+        except Exception:
+            logger.exception("Comparison solver failed: %s", solver)
+            results[solver] = SolverComparisonResult(solver=solver, error="The solver could not complete this route.")
+
+    gap = None
+    if "classical" in results and "quantum" in results:
+        classical = results["classical"].route
+        quantum = results["quantum"].route
+        if classical and quantum:
+            exact = classical.distance_meters
+            sampled = quantum.distance_meters
+            if exact is not None and sampled is not None:
+                if isclose(exact, sampled, rel_tol=1e-12, abs_tol=1e-8):
+                    gap = 0.0
+                elif exact > 0:
+                    gap = 100 * (sampled - exact) / exact
+
+    return RouteComparisonResponse(
+        left=results[request.left_solver],
+        right=results[request.right_solver],
+        optimality_gap_pct=gap,
+        timings_ms={
+            **problem.preparation_ms,
+            "total": round((time.perf_counter() - started) * 1000, 2),
+        },
+    )

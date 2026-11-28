@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showStatus } from './ui.js';
+import { showStatus } from './ui.js?v=20261128-13';
 
 const placeOptions = document.querySelector('#place-options');
 
@@ -34,6 +34,11 @@ function pointKey(input) {
   return input.id || `destination-${[...document.querySelectorAll('.destination')].indexOf(input)}`;
 }
 
+export function readRouteLocations() {
+  return [...document.querySelectorAll('#depot, .destination')]
+    .map(input => ({ name: input.value.trim(), point: state.pickedPoints.get(pointKey(input)) ?? null }));
+}
+
 function renderPlaceOptions(places) {
   placeOptions.replaceChildren(...places.map(place => {
     const option = document.createElement('option');
@@ -43,10 +48,12 @@ function renderPlaceOptions(places) {
   }));
 }
 
-export function initializeLocationSearch() {
+export function initializeLocationSearch(refreshSelectedPins) {
   document.querySelectorAll('#depot, .destination').forEach(input => {
+    input.addEventListener('change', () => refreshSelectedPins());
     input.addEventListener('input', () => {
       state.pickedPoints.delete(pointKey(input));
+      refreshSelectedPins(false);
       clearTimeout(state.placeSearchTimers.get(input));
       state.placeSearchControllers.get(input)?.abort();
       const query = input.value.trim();
@@ -70,8 +77,12 @@ export function initializeLocationSearch() {
   });
 }
 
-export function initializeMapPicking(map) {
+export function initializeMapPicking(maps, refreshSelectedPins) {
   const pickButtons = [...document.querySelectorAll('.pick-location-button')];
+  let pickRevision = 0;
+  const setPickingCursor = active => maps.forEach(map => {
+    map.getContainer().classList.toggle('map-picking', active);
+  });
   // Province lookup stays local, including when TSM_OFFLINE=1.
   const provinceBoundaries = fetch('/static/data/provinces.geojson')
     .then(response => response.ok ? response.json() : null)
@@ -82,6 +93,7 @@ export function initializeMapPicking(map) {
   });
 
   pickButtons.forEach(button => button.addEventListener('click', () => {
+    pickRevision += 1;
     const isSameTarget = state.pickingOnMap && state.pickTarget === button.dataset.pickTarget;
     state.pickingOnMap = !isSameTarget;
     state.pickTarget = state.pickingOnMap ? button.dataset.pickTarget : null;
@@ -90,12 +102,13 @@ export function initializeMapPicking(map) {
       button.classList.add('is-active');
       button.textContent = '✕';
     }
-    map.getContainer().classList.toggle('map-picking', state.pickingOnMap);
-    showStatus(state.pickingOnMap ? 'Click the map to choose this location…' : 'Map picking cancelled');
+    setPickingCursor(state.pickingOnMap);
+    showStatus(state.pickingOnMap ? 'Click either map to choose this location…' : 'Map picking cancelled');
   }));
 
-  map.on('click', async event => {
+  async function pickOnMap(event) {
     if (!state.pickingOnMap) return;
+    const revision = ++pickRevision;
     const target = state.pickTarget;
     showStatus('Finding the selected map location…');
     try {
@@ -108,16 +121,19 @@ export function initializeMapPicking(map) {
             if (!response.ok) throw new Error(result.detail || 'Location is outside Cambodia');
             return result;
           });
+      if (revision !== pickRevision) return;
       const input = target === 'depot' ? document.querySelector('#depot') : document.querySelectorAll('.destination')[Number(target.split('-')[1])];
       input.value = place.query;
       state.pickedPoints.set(target, {query: place.query, latitude: event.latlng.lat, longitude: event.latlng.lng});
+      refreshSelectedPins();
       state.pickingOnMap = false;
       state.pickTarget = null;
-      map.getContainer().classList.remove('map-picking');
+      setPickingCursor(false);
       resetPickButtons();
       showStatus(`${place.query} selected from the map`);
     } catch (error) {
-      showStatus(`Map selection error: ${error.message}`);
+      if (revision === pickRevision) showStatus(`Map selection error: ${error.message}`);
     }
-  });
+  }
+  maps.forEach(map => map.on('click', pickOnMap));
 }

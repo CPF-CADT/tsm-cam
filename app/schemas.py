@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 
 from .quantum.config import QAOA_CONFIG
 
+SolverMode = Literal["quantum", "classical"]
+
 
 class PickedPoint(BaseModel):
     query: str = Field(min_length=1)
@@ -11,16 +13,25 @@ class PickedPoint(BaseModel):
     longitude: float = Field(ge=-180, le=180)
 
 
-class RouteRequest(BaseModel):
+class RouteInputs(BaseModel):
     depot: str = Field(min_length=2)
     destinations: list[str] = Field(min_length=1, max_length=3)
     profile: Literal["driving"] = "driving"
     gamma: float = Field(default=QAOA_CONFIG.initial_gamma, gt=0, allow_inf_nan=False)
     beta: float = Field(default=QAOA_CONFIG.initial_beta, gt=0, allow_inf_nan=False)
     shots: int = Field(default=QAOA_CONFIG.shots, ge=1024, le=65536)
-    solver_mode: Literal["quantum", "classical"] = "quantum"
     depot_point: PickedPoint | None = None
     destination_points: list[PickedPoint | None] = Field(default_factory=list, max_length=3)
+
+
+class RouteRequest(RouteInputs):
+    solver_mode: SolverMode = "quantum"
+
+
+class RouteComparisonRequest(RouteInputs):
+    left_solver: SolverMode = "classical"
+    right_solver: SolverMode = "quantum"
+    fresh_quantum: bool = False
 
 
 class GeocodeResult(BaseModel):
@@ -42,6 +53,7 @@ class QuantumRun(BaseModel):
     selected_count: int
     objective_evaluations: int
     seed: int
+    cached: bool = False
 
 
 class RouteResponse(BaseModel):
@@ -70,3 +82,16 @@ class RouteResponse(BaseModel):
     classical_distance_meters: float | None = None
     classical_repeated_segments: list[str] = Field(default_factory=list)
     timings_ms: dict[str, float] = Field(default_factory=dict)
+
+
+class SolverComparisonResult(BaseModel):
+    solver: SolverMode
+    route: RouteResponse | None = None
+    error: str | None = None
+
+
+class RouteComparisonResponse(BaseModel):
+    left: SolverComparisonResult
+    right: SolverComparisonResult
+    optimality_gap_pct: float | None = None
+    timings_ms: dict[str, float]

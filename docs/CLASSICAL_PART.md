@@ -35,6 +35,7 @@ Purpose:
 
 ### Quantum and classical mode selection
 
+- The comparison endpoint resolves the locations once and supplies the same distance matrix to both solvers.
 - Quantum mode returns the tour decoded from the most frequently measured final bitstring.
 - Classical mode uses Held–Karp dynamic programming to find the minimum-distance tour back to the depot.
 - Held–Karp stores the cheapest partial route for each subset of visited destinations and final stop. With `n` destinations, it takes `O(n² · 2ⁿ)` time and `O(n · 2ⁿ)` space.
