@@ -1,163 +1,47 @@
-# TSM-CAM Project Structure
+# TSM-CAM project structure
 
-TSM-CAM is a hybrid route optimizer. It uses classical software to prepare the
-route problem and QAOA to search for a good TSP route.
+TSM-CAM compares two Traveling Salesperson Problem solvers for a Cambodian round trip. The browser sends one depot and up to three destinations. FastAPI resolves the stops once and gives both solvers the same Haversine distance matrix.
 
-## Project flow
-
-```text
-User input
-    ↓
-Location lookup and coordinates
-    ↓
-Classical Haversine distance matrix
-    ↓
-TSP model → QUBO → Ising Hamiltonian
-    ↓
-QAOA quantum circuit and measurements
-    ↓
-Classical bitstring decoding and validation
-    ↓
-Route response and map display
+```mermaid
+flowchart TD
+    A["Sidebar or map pins"] --> B["Locations and distance matrix"]
+    B --> C["Held–Karp"]
+    B --> D["Simulated QAOA"]
+    C --> E["Route and performance panel"]
+    D --> F["Route and performance panel"]
 ```
 
-## Source files
+## Main files
 
-### `app/main.py`
+| File or folder | Responsibility |
+| --- | --- |
+| [app/main.py](../app/main.py) | FastAPI endpoints, shared route preparation, solver dispatch and response assembly. |
+| [app/schemas.py](../app/schemas.py) | Request, response, map-pin and quantum run models. |
+| [app/classical/](../app/classical/) | Place lookup, Haversine distances, Held–Karp and route geometry. |
+| [app/quantum/qaoa.py](../app/quantum/qaoa.py) | Fixed-depot encoding, permutation-swap mixer, simulation and bitstring decoding. |
+| [app/quantum/config.py](../app/quantum/config.py) | QAOA depth, sampling and optimizer defaults. |
+| [templates/index.html](../templates/index.html) and [static/style.css](../static/style.css) | Shared sidebar, two map panels and the responsive layout. |
+| [static/scripts/](../static/scripts/) | Leaflet setup, place search, map picking, markers, route drawing, animation and result rendering. |
+| [offline-data/](../offline-data/) and [static/data/](../static/data/) | Local place index, province coordinates, boundaries and map artwork. |
+| [scripts/](../scripts/) | Map-data preparation and QAOA experiment scripts. |
 
-Application controller and FastAPI endpoints.
+## Browser behavior
 
-Responsibilities:
+**Optimize route** submits both algorithm choices. By default the left map uses Held–Karp and the right map uses QAOA. Each map shows its own route and performance report. The depot and selected stops are visible before optimization, and destination labels gain visit numbers once a route is ready.
 
-- Receives route requests from the browser.
-- Calls location lookup and distance preparation.
-- Selects Quantum or Classical mode.
-- Calls `quantum/qaoa.py` in Quantum mode.
-- Formats the API response.
+The website uses Leaflet with online OpenStreetMap tiles. Setting `TSM_OFFLINE=1` switches place lookup to the local index. Each route has an independent helicopter animation at 3× speed. **Other location pins** starts off. When enabled, those pins hide during playback and return two seconds after that map's flight finishes.
 
-Relation to quantum computing: **orchestration only**. It starts the QAOA
-workflow but does not define the quantum circuit itself.
+## API
 
-### `app/schemas.py`
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /api/routes/compare` | Main browser endpoint. Returns the left and right outcomes, shared timings and the distance gap when both solvers return routes. |
+| `POST /api/routes/optimize` | Runs one solver selected by `solver_mode`. |
+| `GET /api/places` and `GET /api/geocode` | Search for names and resolve coordinates. |
+| `GET /api/reverse` | Resolve a coordinate picked from the map. |
+| `GET /api/health` and `GET /health` | Return `{"status":"ok"}`. |
+| `GET /docs` | Interactive FastAPI reference. |
 
-Defines input and output data models:
+Comparison results are independent. If one solver fails, its panel receives an error and the other panel can still show its route.
 
-- `RouteRequest`
-- `PickedPoint`
-- `GeocodeResult`
-- `RouteResponse`
-
-Relation to quantum computing: **indirect**. It carries quantum settings such
-as `gamma`, `beta`, `shots`, and `solver_mode`.
-
-### `app/classical/places.py`
-
-Searches the local Cambodia place index when offline mode is enabled.
-
-Relation to quantum computing: **not quantum**. It prepares the locations that
-will later become TSP cities.
-
-### `app/classical/locations.py` and `app/classical/distances.py`
-
-Handles classical geographic calculations:
-
-- Online geocoding through Nominatim.
-- Reverse geocoding.
-- Cambodia boundary checks.
-- Haversine straight-line distance calculation.
-- Distance matrix creation.
-- Optional routing helpers.
-
-Relation to quantum computing: **classical input preparation**. The distance
-matrix produced here becomes the weight used by the quantum TSP model.
-
-### `app/quantum/config.py`
-
-Holds the circuit depth, CVaR alpha, initial angles, shot count, COBYLA settings,
-and simulator seed.
-
-### `app/quantum/qaoa.py`
-
-Builds the fixed-depot Ising Hamiltonian and permutation-swap mixer.
-`solve_qaoa()` tunes the circuit angles, samples the optimized circuit with Aer,
-and decodes the most frequent measured assignment into a closed tour.
-
-### `app/classical/routes.py`
-
-Creates route legs and illustrative pin-to-pin GeoJSON lines for the frontend.
-
-Relation to quantum computing: **post-processing only**. It visualizes the
-route selected after QAOA; it does not change the quantum result.
-
-## Other project folders
-
-### `static/`
-
-Contains browser assets:
-
-- HTML-related JavaScript and CSS.
-- MapLibre GL JS.
-- PMTiles support.
-- Cambodia map style.
-- Cambodia boundary and province data.
-
-Relation to quantum computing: **not quantum**. It displays the locations and
-the route returned by the backend.
-
-### `templates/`
-
-Contains the main HTML page for the web interface.
-
-Relation to quantum computing: **not quantum**. It provides the user interface
-for selecting Quantum or Classical mode.
-
-### `offline-data/`
-
-Contains geographic data:
-
-- Cambodia OSM extract.
-- PMTiles map archive.
-- Offline place index.
-- Optional OSRM routing files.
-
-Relation to quantum computing: **input data only**. Geographic data is used to
-create coordinates and distances before QAOA starts.
-
-### `scripts/`
-
-Contains data preparation utilities for places, boundaries, roads, and map
-tiles.
-
-Relation to quantum computing: **not quantum**. These scripts prepare map data.
-
-### `docs/`
-
-Contains project documentation explaining architecture and quantum concepts.
-
-### `papers/` or project paper references
-
-The reference papers describe QAOA, TSP encoding, QUBO, Ising Hamiltonians, and
-hybrid quantum-classical optimization.
-
-## Quantum versus classical responsibility
-
-| Component | Responsibility | Quantum relation |
-|---|---|---|
-| Location lookup | Find coordinates | Classical preparation |
-| Haversine distance | Calculate weights | Classical input |
-| Graph creation | Build TSP graph | Preparation for Qiskit |
-| TSP model | Define optimization problem | Quantum optimization model |
-| QUBO | Encode binary optimization | Quantum-compatible formulation |
-| Ising Hamiltonian | Encode energy function | Quantum cost model |
-| QAOA | Search candidate solutions | Core quantum algorithm |
-| COBYLA | Tune `beta` and `gamma` | Classical part of hybrid QAOA |
-| AerSimulator | Execute circuit locally | Quantum simulation |
-| Shots | Repeat circuit measurements | Quantum sampling |
-| Bitstring decoding | Interpret measured result | Classical post-processing |
-| Map display | Show route | Application output |
-
-## Important limitation
-
-The current project uses `AerSimulator`, so the quantum circuit is simulated on
-a classical computer. The implementation follows the baseline QAOA-TSP process,
-but it is not currently running on IBM quantum hardware.
+[Local setup and cloud demo](../README.md) · [Classical solver](CLASSICAL_PART.md) · [Quantum solver](QUANTUM_PART.md)

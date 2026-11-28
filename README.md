@@ -1,66 +1,27 @@
-# TSM-CAM: A Hybrid Quantum-Classical Route Optimization System for Cambodia Using QAOA
+# TSM-CAM
 
-TSM-CAM is a Cambodia route-order optimizer.
+TSM-CAM compares quantum and classical route optimization for Cambodia. Choose a depot and up to three destinations, then click **Optimize route** to see both round trips on separate maps. The app uses straight-line Haversine distances and shows each solver's route, distance, estimated flight time, and compute time.
 
-![TSM-CAM system demo](demo.jpg)
+**[Try the cloud demo](https://tsm-cam.onrender.com/)** · [Health check](https://tsm-cam.onrender.com/api/health)
 
-It allows a user to:
+## Solvers
 
-- Select one departure location and up to three destinations.
-- Search for Cambodian provinces, districts, cities, and towns.
-- Pick locations directly from the map.
-- Calculate straight-line distances using the Haversine formula.
-- Compare Quantum QAOA and classical Held–Karp on separate maps using the same stops.
-- Display the selected route on a Cambodia map.
+| Engine | How it works |
+| --- | --- |
+| Quantum · QAOA | Uses Qiskit Aer to simulate a circuit with a permutation-swap mixer. It decodes the most frequently measured bitstring into a route. |
+| Classical · Held–Karp | Uses dynamic programming to find the exact shortest tour on the same distance matrix. |
 
-The quantum workflow is:
+## Run locally
 
-```text
-Distance matrix → TSP → QUBO → Ising Hamiltonian → QAOA → measured route
-```
-
-The quantum backend uses a fixed-depot encoding, a permutation-swap mixer, and
-Qiskit's local `AerSimulator`. Adjust the default circuit and sampling settings
-in [`app/quantum/config.py`](app/quantum/config.py). The displayed map
-lines are illustrative straight connections between locations, not turn-by-turn
-road geometry.
-
-The flight-time estimate uses straight-line distance and the Airbus H125's
-published fast cruise speed of 252 km/h. It represents cruise time between
-stops. [Airbus civil helicopter specifications](https://www.airbus.com/sites/g/files/jlcbta136/files/2022-10/2022-Civil%20Range.pdf)
-
-Large offline map archives and generated tiles are intentionally excluded from
-Git. Keep them locally for offline operation or generate/download them using
-the scripts in `scripts/`.
-
-## How to run
-
-From the project directory:
+From the repository root:
 
 ```bash
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+TSM_OFFLINE=1 python -m uvicorn app.main:app --reload
 ```
 
-```bash
-uvicorn app.main:app --reload
-```
+Open [localhost:8000](http://127.0.0.1:8000/). QAOA settings are in [config.py](app/quantum/config.py).
 
-Open this address in a browser:
-
-```text
-http://127.0.0.1:8000
-```
-
-For offline place lookup and map picking:
-
-```bash
-TSM_OFFLINE=1 ../.venv/bin/uvicorn app.main:app --reload
-```
-
-## Detailed documentation
-
-For detailed code purpose and architecture, read:
-
-- [Quantum part](docs/QUANTUM_PART.md)
-- [Classical part](docs/CLASSICAL_PART.md)
-- [Project structure and quantum relationships](docs/PROJECT_STRUCTURE.md)
+![TSM-CAM solver comparison](demo.jpg)
