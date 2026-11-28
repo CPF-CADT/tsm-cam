@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TSM-CAM Route Optimizer</title>
   <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="/static/style.css?v=20261126-4">
+  <link rel="stylesheet" href="/static/style.css?v=20261128-4">
 </head>
 <body>
   <main class="page">
@@ -24,11 +24,11 @@
           <button class="pick-location-button" type="button" data-pick-target="destination-0" aria-label="Pick destination 1 on map">📍</button>
         </div>
         <div class="location-input-row">
-          <input class="destination" list="place-options" value="Kampong Cham" placeholder="Destination 2" required>
+          <input class="destination" list="place-options" value="Kampong Cham" placeholder="Destination 2">
           <button class="pick-location-button" type="button" data-pick-target="destination-1" aria-label="Pick destination 2 on map">📍</button>
         </div>
         <div class="location-input-row">
-          <input class="destination" list="place-options" value="Siem Reap" placeholder="Destination 3" required>
+          <input class="destination" list="place-options" value="Siem Reap" placeholder="Destination 3">
           <button class="pick-location-button" type="button" data-pick-target="destination-2" aria-label="Pick destination 3 on map">📍</button>
         </div>
         <label for="solver-mode">Calculation mode</label>
@@ -38,34 +38,21 @@
         </select>
         <button type="submit">Optimize route</button>
       </form>
-      <section id="animation-panel" class="animation-panel" hidden aria-label="Route animation controls">
-        <div class="animation-heading"><strong>Route animation</strong><span id="animation-state">Ready</span></div>
-        <div class="animation-controls">
-          <button id="animation-pause" type="button" disabled>Pause</button>
-          <button id="animation-resume" type="button" disabled>Resume</button>
-          <button id="animation-reset" type="button" disabled>Replay</button>
-        </div>
-        <div class="speed-controls" role="group" aria-label="Animation speed">
-          <span>Speed</span>
-          <button type="button" data-animation-speed="1">1×</button>
-          <button type="button" data-animation-speed="2" class="is-selected">2×</button>
-          <button type="button" data-animation-speed="4">4×</button>
-        </div>
-        <div class="animation-details" aria-live="polite">
-          <div><span>Current</span><strong id="animation-current">—</strong></div>
-          <div><span>Next</span><strong id="animation-next">—</strong></div>
-          <div><span>Journey</span><strong id="animation-progress">0%</strong></div>
-          <div><span>Remaining</span><strong id="animation-remaining">—</strong></div>
-        </div>
-      </section>
       <div id="status" class="status"></div>
       <div id="result" class="result"></div>
       <div id="timing-report" class="timing-report"></div>
     </section>
-    <section id="map" class="map"><div id="route-legend" class="route-legend"></div></section>
+    <section id="map" class="map">
+      <dl id="journey-details" class="journey-details" aria-label="Journey progress" hidden>
+        <div><dt>Current</dt><dd id="animation-current">—</dd></div>
+        <div><dt>Next</dt><dd id="animation-next">—</dd></div>
+        <div><dt>Journey</dt><dd id="animation-progress">0%</dd></div>
+        <div><dt>Remaining</dt><dd id="animation-remaining">—</dd></div>
+      </dl>
+    </section>
   </main>
   <datalist id="place-options"></datalist>
   <script src="/static/vendor/leaflet/leaflet.js"></script>
-  <script type="module" src="/static/scripts/app.js?v=20261126-4"></script>
+  <script type="module" src="/static/scripts/app.js?v=20261128-6"></script>
 </body>
 </html>

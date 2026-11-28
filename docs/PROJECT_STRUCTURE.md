@@ -71,59 +71,16 @@ Handles classical geographic calculations:
 Relation to quantum computing: **classical input preparation**. The distance
 matrix produced here becomes the weight used by the quantum TSP model.
 
+### `app/quantum/config.py`
+
+Holds the circuit depth, CVaR alpha, initial angles, shot count, COBYLA settings,
+and simulator seed.
+
 ### `app/quantum/qaoa.py`
 
-This is the main quantum-computing file.
-
-Responsibilities:
-
-- Creates the weighted graph.
-- Converts the graph into a Qiskit TSP model.
-- Converts the TSP model into a Quadratic Program.
-- Converts the Quadratic Program into QUBO.
-- Converts QUBO into an Ising Hamiltonian.
-- Creates and runs QAOA.
-- Uses `AerSimulator` and `SamplerV2`.
-- Samples quantum bitstrings.
-- Decodes valid bitstrings into tours.
-
-Important functions:
-
-```python
-create_graph()
-```
-
-Creates a weighted graph from the distance matrix.
-
-```python
-create_hamiltonian()
-```
-
-Performs:
-
-```text
-TSP → Quadratic Program → QUBO → Ising Hamiltonian
-```
-
-```python
-qaoa_candidates()
-```
-
-Runs the main QAOA workflow.
-
-```python
-decode_tour()
-```
-
-Converts a measured quantum bitstring into a city order.
-
-```python
-rotate_to_depot()
-```
-
-Ensures the returned route starts at the departure city.
-
-Relation to quantum computing: **core quantum implementation**.
+Builds the fixed-depot Ising Hamiltonian and permutation-swap mixer.
+`solve_qaoa()` tunes the circuit angles, samples the optimized circuit with Aer,
+and decodes the most frequent measured assignment into a closed tour.
 
 ### `app/classical/routes.py`
 

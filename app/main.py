@@ -3,7 +3,6 @@ import os
 import struct
 import time
 import zlib
-from itertools import permutations
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response
@@ -17,14 +16,15 @@ from .classical.locations import (
     search_online,
 )
 from .classical.distances import build_straight_distance_matrix
+from .classical.held_karp import held_karp_tour
 from .classical.places import geocode_offline, search_places
 from .classical.routes import make_leg_results, make_mock_route
-from .quantum.qaoa import qaoa_candidates
-from .schemas import GeocodeResult, RouteRequest, RouteResponse
+from .quantum.config import QAOA_CONFIG
+from .quantum.qaoa import solve_qaoa
+from .schemas import GeocodeResult, QuantumRun, RouteRequest, RouteResponse
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-STRAIGHT_LINE_SPEED_KMH = 60.0
 app = FastAPI(title="TSM-CAM Route Optimizer", version="0.1.0")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
@@ -186,7 +186,8 @@ def optimize_route(request: RouteRequest):
     try:
         # 1. Resolve typed names or exact map-picked coordinates.
         geocoding_started = time.perf_counter()
-        points = [request.depot_point, *request.destination_points]
+        points = [request.depot_point, *request.destination_points[:len(request.destinations)]]
+        points.extend([None] * (len(names) - len(points)))
         typed_indices = [index for index, point in enumerate(points) if point is None]
         typed_names = [names[index] for index in typed_indices]
         typed_locations = (
@@ -198,7 +199,7 @@ def optimize_route(request: RouteRequest):
         geocoding_ms = (time.perf_counter() - geocoding_started) * 1000
         locations = []
         for index, name in enumerate(names):
-            point = points[index] if index < len(points) else None
+            point = points[index]
             if point is not None:
                 locations.append({
                     "query": point.query,
@@ -217,99 +218,76 @@ def optimize_route(request: RouteRequest):
         matrix_data = build_straight_distance_matrix(locations)
         distances = matrix_data["distances"]
         durations = matrix_data.get("durations", [])
-        quantum_tours = []
-        for order in permutations(range(1, len(locations))):
-            tour = [0, *order, 0]
-            # Keep every valid TSP permutation. Road overlap is scored after measurement.
-            quantum_tours.append(tour)
         classical_preparation_ms = (time.perf_counter() - classical_started) * 1000
 
-        def check_candidates(candidate_list):
-            checked_routes = []
-            for candidate in candidate_list:
-                route = make_mock_route(locations, candidate["tour"], distances, durations)
-                # Mock lines have no real road segments to compare.
-                outside_cambodia = False
-                repeated = set()
-                checked_routes.append((bool(repeated), outside_cambodia, route["distance"], candidate, route, repeated))
-            return checked_routes
-
+        solver = request.solver_mode
+        selected_bitstring = None
         counts = {}
-        quantum_candidate = None
-        classical_selected = None
+        quantum_run = None
         quantum_ms = 0.0
         classical_solver_ms = 0.0
-        if request.solver_mode == "quantum":
-            # Quantum mode runs QAOA only.
-            quantum_started = time.perf_counter()
-            candidates, counts = qaoa_candidates(
-                distances,
-                request.gamma,
-                request.beta,
-                request.shots,
-                depot=0,
-                allowed_tours=quantum_tours,
+        if solver == "quantum":
+            result = solve_qaoa(
+                distances, gamma=request.gamma, beta=request.beta, shots=request.shots,
             )
-            if not candidates:
+            if result.tour is None:
                 raise HTTPException(
                     status_code=422,
-                    detail=(
-                        "QAOA did not measure a valid TSP permutation. "
-                        f"Increase shots or tune gamma/beta. shots={request.shots}"
-                    ),
+                    detail="The most frequent quantum measurement did not encode a valid tour.",
                 )
-            checked = check_candidates(candidates)
-            quantum_ms = (time.perf_counter() - quantum_started) * 1000
+            tour = result.tour
+            selected_bitstring = result.bitstring
+            counts = result.counts
+            quantum_ms = result.compute_ms
+            quantum_run = QuantumRun(
+                layers=result.layers,
+                cvar_alpha=QAOA_CONFIG.cvar_alpha if result.layers else None,
+                qubits=result.qubits,
+                shots=sum(counts.values()),
+                selected_count=counts[selected_bitstring],
+                objective_evaluations=result.evaluations,
+                seed=QAOA_CONFIG.seed,
+            )
+            message = (
+                "QAOA selected the most frequently measured tour"
+                if result.layers else "Sampled the only possible tour on one qubit"
+            )
         else:
-            # Classical mode runs exhaustive search only; no QAOA is started.
             classical_solver_started = time.perf_counter()
-            classical_candidates = [
-                {"tour": tour, "bitstring": "", "count": 0}
-                for tour in quantum_tours
-            ]
-            checked = check_candidates(classical_candidates)
+            tour = held_karp_tour(distances)
             classical_solver_ms = (time.perf_counter() - classical_solver_started) * 1000
+            message = "Held–Karp selected the shortest tour by straight-line distance"
 
-        # Select the shortest valid tour by straight-line distance.
-        inside = [item for item in checked if not item[1]]
-        if not inside:
-            raise HTTPException(status_code=422, detail="No route staying inside Cambodia was found")
-        selected = min(inside, key=lambda item: item[2])
-        has_repeated, outside_cambodia, _, candidate, route, repeated = selected
-        ordered_names = [locations[index]["query"] for index in candidate["tour"]]
-        legs = make_leg_results(route, locations, candidate["tour"])
-        solver = request.solver_mode
+        route = make_mock_route(locations, tour, distances, durations)
+        ordered_names = [locations[index]["query"] for index in tour]
+        legs = make_leg_results(route, locations, tour)
         timings_ms = {
             "geocoding": round(geocoding_ms, 2),
             "classical_preparation": round(classical_preparation_ms, 2),
-            "classical_solver": round(classical_solver_ms, 2),
-            "quantum_qaoa": round(quantum_ms, 2),
+            "classical_solver": round(classical_solver_ms, 3),
+            "quantum_qaoa": round(quantum_ms, 3),
             "total": round((time.perf_counter() - request_started) * 1000, 2),
         }
         return RouteResponse(
-            status="success" if not outside_cambodia else "outside_cambodia",
+            status="success",
             solver=solver,
-            message=f"{solver.title()} route selected using straight-line distance",
+            message=message,
             locations=locations,
-            order=candidate["tour"],
+            order=tour,
             ordered_names=ordered_names,
             distance_meters=route["distance"],
             duration_seconds=route["duration"],
             geometry=route.get("geometry"),
             legs=legs,
-            repeated_segments=[str(item) for item in sorted(repeated)],
-            boundary_violation=outside_cambodia,
-            selected_bitstring=(candidate["bitstring"] or None),
+            selected_bitstring=selected_bitstring,
             top_measurements=dict(sorted(counts.items(), key=lambda item: item[1], reverse=True)[:10]),
-            validation_enabled=False,
-            winner=request.solver_mode,
-            quantum_ordered_names=ordered_names if request.solver_mode == "quantum" else [],
-            quantum_distance_meters=route["distance"] if request.solver_mode == "quantum" else None,
-            quantum_repeated_segments=[],
-            quantum_bitstring=candidate["bitstring"] or None if request.solver_mode == "quantum" else None,
-            classical_ordered_names=ordered_names if request.solver_mode == "classical" else [],
-            classical_distance_meters=route["distance"] if request.solver_mode == "classical" else None,
-            classical_repeated_segments=[],
+            quantum_run=quantum_run,
+            winner=solver,
+            quantum_ordered_names=ordered_names if solver == "quantum" else [],
+            quantum_distance_meters=route["distance"] if solver == "quantum" else None,
+            quantum_bitstring=selected_bitstring,
+            classical_ordered_names=ordered_names if solver == "classical" else [],
+            classical_distance_meters=route["distance"] if solver == "classical" else None,
             timings_ms=timings_ms,
         )
     except HTTPException:

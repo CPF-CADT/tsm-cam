@@ -44,21 +44,6 @@ button:disabled { cursor: wait; opacity: .65; }
 .metric-card span, .metric-card strong { display: block; }
 .metric-card span { color: #667781; font-size: 0.75rem; }
 .metric-card strong { margin-top: 3px; color: #176b87; font-size: 1.15rem; }
-.animation-panel { margin-top: 12px; padding: 11px; border: 1px solid #d9e2e6; border-radius: 8px; background: #f9fbfc; }
-.animation-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #174d60; }
-.animation-heading span { color: #667781; font-size: .78rem; font-weight: 700; }
-.animation-controls, .speed-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 9px; }
-.animation-controls button, .speed-controls button { margin: 0; padding: 8px 5px; font-size: .8rem; }
-.animation-controls button:disabled { cursor: not-allowed; opacity: .5; }
-.speed-controls { grid-template-columns: auto repeat(3, 1fr); align-items: center; }
-.speed-controls span { color: #667781; font-size: .8rem; font-weight: 700; }
-.speed-controls button { background: #eef5f7; color: #176b87; border: 1px solid #c8d2d8; }
-.speed-controls button.is-selected { background: #176b87; color: white; }
-.animation-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-.animation-details div { min-width: 0; padding: 7px; border-radius: 6px; background: white; }
-.animation-details span, .animation-details strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.animation-details span { color: #667781; font-size: .7rem; }
-.animation-details strong { margin-top: 2px; color: #176b87; font-size: .82rem; }
 .map {
   position: relative;
   width: 100%;
@@ -66,32 +51,38 @@ button:disabled { cursor: wait; opacity: .65; }
   min-height: 0;
 }
 .leaflet-container { background: #e7edf1; font: inherit; }
-.route-legend {
+.journey-details {
   position: absolute;
   right: 16px;
-  bottom: 16px;
+  bottom: 24px;
   z-index: 1000;
-  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px 12px;
-  width: fit-content;
+  grid-template-rows: 3.5rem 1fr;
+  gap: 10px 22px;
+  width: 380px;
   max-width: calc(100% - 32px);
-  padding: 9px 12px;
+  height: 148px;
+  margin: 0;
+  padding: 14px 18px;
   border-radius: 8px;
   background: #ffffffee;
   box-shadow: 0 2px 10px #0003;
-  font-size: 0.8rem;
 }
-.legend-item {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
+.journey-details:not([hidden]) { display: grid; }
+.journey-details dt { color: #53636e; font-size: 0.85rem; line-height: 1.2; }
+.journey-details dd {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  margin: 3px 0 0;
+  color: #174d60;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
-.legend-swatch { width: 28px; height: 5px; border-radius: 3px; flex: 0 0 auto; }
 .car-icon-wrapper, .destination-icon-wrapper { background: transparent; border: 0; }
 .car-icon {
   display: grid;
@@ -143,6 +134,4 @@ button:disabled { cursor: wait; opacity: .65; }
   .page { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
   .panel { overflow: visible; }
   .map { min-height: 48vh; }
-  .route-legend { grid-template-columns: 1fr; }
-  .animation-controls { grid-template-columns: repeat(2, 1fr); }
 }

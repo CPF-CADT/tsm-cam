@@ -1,5 +1,7 @@
 """Format route legs and illustrative route geometry for API output."""
 
+HELICOPTER_CRUISE_SPEED_KMH = 252.0  # Airbus H125 published fast cruise speed.
+
 
 def make_leg_results(route: dict, locations: list[dict], order: list[int]) -> list[dict]:
     """Convert route legs into separate GeoJSON lines for the frontend."""
@@ -29,7 +31,7 @@ def make_mock_route(
     order: list[int],
     distances: list[list[float]],
     durations: list[list[float | None]],
-    speed_kmh: float = 60.0,
+    speed_kmh: float = HELICOPTER_CRUISE_SPEED_KMH,
 ) -> dict:
     """Build illustrative straight lines from local Haversine distances."""
     legs = []

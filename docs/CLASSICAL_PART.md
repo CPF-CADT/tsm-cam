@@ -33,34 +33,11 @@ Purpose:
 - Sends the distance matrix to QAOA when Quantum mode is selected.
 - Returns the final route response.
 
-### Quantum/classical mode selection
+### Quantum and classical mode selection
 
-```python
-if request.solver_mode == "quantum":
-    candidates, counts = qaoa_candidates(...)
-else:
-    classical_candidates = [
-        {"tour": tour, "bitstring": "", "count": 0}
-        for tour in quantum_tours
-    ]
-```
-
-Purpose:
-
-- Quantum mode runs QAOA.
-- Classical mode checks the destination permutations directly.
-- Classical mode is a separate mode, not a fallback after a quantum failure.
-
-### Route selection
-
-```python
-selected = min(inside, key=lambda item: item[2])
-```
-
-Purpose:
-
-- Selects the shortest valid candidate using the calculated distance.
-- This is classical post-processing after candidate generation.
+- Quantum mode returns the tour decoded from the most frequently measured final bitstring.
+- Classical mode uses Held–Karp dynamic programming to find the minimum-distance tour back to the depot.
+- Held–Karp stores the cheapest partial route for each subset of visited destinations and final stop. With `n` destinations, it takes `O(n² · 2ⁿ)` time and `O(n · 2ⁿ)` space.
 
 ## `app/schemas.py`
 

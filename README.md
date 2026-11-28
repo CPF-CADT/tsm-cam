@@ -10,7 +10,7 @@ It allows a user to:
 - Search for Cambodian provinces, districts, cities, and towns.
 - Pick locations directly from the map.
 - Calculate straight-line distances using the Haversine formula.
-- Optimize the visit order using Quantum QAOA or Classical search.
+- Optimize the visit order using Quantum QAOA or classical Held–Karp dynamic programming.
 - Display the selected route on a Cambodia map.
 
 The quantum workflow is:
@@ -19,9 +19,15 @@ The quantum workflow is:
 Distance matrix → TSP → QUBO → Ising Hamiltonian → QAOA → measured route
 ```
 
-The current quantum backend is Qiskit's local `AerSimulator`. The displayed map
+The quantum backend uses a fixed-depot encoding, a permutation-swap mixer, and
+Qiskit's local `AerSimulator`. Adjust the default circuit and sampling settings
+in [`app/quantum/config.py`](app/quantum/config.py). The displayed map
 lines are illustrative straight connections between locations, not turn-by-turn
 road geometry.
+
+The flight-time estimate uses straight-line distance and the Airbus H125's
+published fast cruise speed of 252 km/h. It represents cruise time between
+stops. [Airbus civil helicopter specifications](https://www.airbus.com/sites/g/files/jlcbta136/files/2022-10/2022-Civil%20Range.pdf)
 
 Large offline map archives and generated tiles are intentionally excluded from
 Git. Keep them locally for offline operation or generate/download them using

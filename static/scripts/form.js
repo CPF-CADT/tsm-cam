@@ -1,8 +1,8 @@
 import { state } from './state.js';
 import { clearRouteMarkers, showLocationMarkers } from './markers.js?v=20261125-3';
-import { clearRouteLayers, showColoredRoute } from './route_layers.js';
-import { clearResult, renderResult, showStatus } from './ui.js';
-import { prepareRouteAnimation, resetRouteAnimation } from './animation.js?v=20261126-4';
+import { clearRouteLayers, showColoredRoute } from './route_layers.js?v=20261128-3';
+import { clearResult, renderResult, showStatus } from './ui.js?v=20261128-5';
+import { startRouteAnimation, resetRouteAnimation } from './animation.js?v=20261128-6';
 
 export function initializeRouteForm(map) {
   document.querySelector('#route-form').addEventListener('submit', async event => {
@@ -15,17 +15,22 @@ export function initializeRouteForm(map) {
     optimizeButton.textContent = solverMode === 'quantum' ? 'Running QAOA…' : 'Calculating route…';
     optimizeButton.setAttribute('aria-busy', 'true');
     showStatus(solverMode === 'quantum' ? 'Calculating distance and running QAOA…' : 'Calculating the classical route…');
+    resetRouteAnimation();
     clearResult();
     clearRouteMarkers();
-    clearRouteLayers(map);
-    resetRouteAnimation({ hide: true });
-    const destinationInputs = [...document.querySelectorAll('.destination')];
-    const destinations = destinationInputs.map(input => input.value.trim()).filter(Boolean);
+    clearRouteLayers();
+    const entries = [...document.querySelectorAll('.destination')]
+      .map((input, index) => ({
+        name: input.value.trim(),
+        point: state.pickedPoints.get(`destination-${index}`) || null
+      }))
+      .filter(entry => entry.name);
     const payload = {
-      depot: document.querySelector('#depot').value.trim(), destinations,
-      solver_mode: solverMode, shots: 32768,
+      depot: document.querySelector('#depot').value.trim(),
+      destinations: entries.map(entry => entry.name),
+      solver_mode: solverMode,
       depot_point: state.pickedPoints.get('depot') || null,
-      destination_points: destinationInputs.map((input, index) => state.pickedPoints.get(`destination-${index}`) || null)
+      destination_points: entries.map(entry => entry.point)
     };
     try {
       const response = await fetch('/api/routes/optimize', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
@@ -35,7 +40,7 @@ export function initializeRouteForm(map) {
       renderResult(data);
       showLocationMarkers(map, data);
       showColoredRoute(map, data);
-      prepareRouteAnimation(map, data);
+      startRouteAnimation(map, data);
     } catch (error) {
       showStatus(`Error: ${error.message}`);
     } finally {

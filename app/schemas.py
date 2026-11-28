@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from .quantum.config import QAOA_CONFIG
+
 
 class PickedPoint(BaseModel):
     query: str = Field(min_length=1)
@@ -13,9 +15,9 @@ class RouteRequest(BaseModel):
     depot: str = Field(min_length=2)
     destinations: list[str] = Field(min_length=1, max_length=3)
     profile: Literal["driving"] = "driving"
-    gamma: float = Field(default=0.2, gt=0)
-    beta: float = Field(default=0.2, gt=0)
-    shots: int = Field(default=32768, ge=1024, le=65536)
+    gamma: float = Field(default=QAOA_CONFIG.initial_gamma, gt=0, allow_inf_nan=False)
+    beta: float = Field(default=QAOA_CONFIG.initial_beta, gt=0, allow_inf_nan=False)
+    shots: int = Field(default=QAOA_CONFIG.shots, ge=1024, le=65536)
     solver_mode: Literal["quantum", "classical"] = "quantum"
     depot_point: PickedPoint | None = None
     destination_points: list[PickedPoint | None] = Field(default_factory=list, max_length=3)
@@ -30,6 +32,16 @@ class GeocodeResult(BaseModel):
     osm_id: int | None = None
     detected_type: str | None = None
     province: str | None = None
+
+
+class QuantumRun(BaseModel):
+    layers: int
+    cvar_alpha: float | None
+    qubits: int
+    shots: int
+    selected_count: int
+    objective_evaluations: int
+    seed: int
 
 
 class RouteResponse(BaseModel):
@@ -47,6 +59,7 @@ class RouteResponse(BaseModel):
     boundary_violation: bool = False
     selected_bitstring: str | None = None
     top_measurements: dict[str, int] = Field(default_factory=dict)
+    quantum_run: QuantumRun | None = None
     validation_enabled: bool = False
     winner: Literal["quantum", "classical", "tie"] = "quantum"
     quantum_ordered_names: list[str] = Field(default_factory=list)
