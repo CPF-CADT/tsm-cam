@@ -103,6 +103,7 @@ def cambodia_pmtiles(request: Request):
 
 
 @app.get("/api/health")
+@app.get("/health")
 def health():
     return {"status": "ok"}
 
